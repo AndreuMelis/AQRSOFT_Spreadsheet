@@ -1,6 +1,6 @@
 from exceptions import InvalidPostfixException
 
-class InfixToPostfixConverter:
+class PostfixConverter:
     def __init__(self):
         # TODO: Initialize operator precedence rules
         pass

@@ -1,36 +1,46 @@
-from abc import ABC, abstractmethod
-from cell import Cell
-from exceptions import EvaluationErrorException
-from formula.functions import Function, FunctionArgument
+from postfix_evaluator import FormulaElementVisitor, FormulaElement
+from functions import Function
 
-class Operand(ABC):
+class Operand(FormulaElement):
     @abstractmethod
-    def get_value(self, spreadsheet=None):
+    def get_value(self, spreadsheet = None):
+        """Each operand type implements its own value resolution logic"""
         pass
+
+    def accept(self, visitor: FormulaElementVisitor) -> Any:
+        return visitor.visit_operand(self)
 
 class NumericOperand(Operand):
-    def __init__(self, value):
-        # TODO: Store numeric value
-        pass
+    """Represents numeric literal values"""
+    
+    def __init__(self, value: Union[int, float]) -> None:
+        self.value: Number = Number(value)
 
-    def get_value(self, spreadsheet=None):
-        # TODO: Return numeric literal
-        pass
+    def get_value(self, spreadsheet = None) -> Number:
+        return self.value.get_value()
 
 class CellOperand(Operand):
-    def __init__(self, cell: Cell):
-        # TODO: Store cell reference
-        pass
+    """Represent a cell from the spreadsheet"""
+    
+    def __init__(self, cell: Cell) -> None:
+        self.cell = cell
 
-    def get_value(self, spreadsheet=None):
-        # TODO: Retrieve value from spreadsheet cell
-        pass
-
+    def get_value(self, spreadsheet = None):
+        return self.cell.get_value()
+    
 class FunctionOperand(Operand):
-    def __init__(self, func: Function, arguments: list):
-        # TODO: Store function and its arguments
-        pass
+    """Represents spreadsheet functions like SUM, MIN, MAX"""
+    
+    def __init__(self, func: Function, arguments: List[FunctionArgument]) -> None:
+        self.function: Function = func
+        self.arguments: List[FunctionArgument] = arguments
 
-    def get_value(self, spreadsheet=None):
-        # TODO: Evaluate function over argument values
-        pass
+    def get_value(self, spreadsheet = None):
+        values = []
+        for arg in self.arguments:
+            v = arg.get_value(spreadsheet)
+            if isinstance(v, list):
+                values.extend(v)
+            else:
+                values.append(v)
+        return self.function.evaluate(values)

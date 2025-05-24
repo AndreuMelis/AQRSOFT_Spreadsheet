@@ -1,14 +1,22 @@
 from abc import ABC, abstractmethod
 from exceptions import EvaluationErrorException, InvalidPostfixException
 
-# Define the visitor & evaluator here:
+
+# Visitor software pattern for solving postfix evaluation
 class FormulaElementVisitor(ABC):
+    """Abstract visitor interface for formula elements"""
     @abstractmethod
     def visit_operator(self, operator):
         pass
 
     @abstractmethod
     def visit_operand(self, operand):
+        pass
+
+class FormulaElement(ABC):
+    """Base class for all formula elements"""
+    @abstractmethod
+    def accept(self, visitor: FormulaElementVisitor):
         pass
 
 class PostfixEvaluationVisitor(FormulaElementVisitor):
