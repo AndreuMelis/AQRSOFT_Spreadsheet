@@ -1,5 +1,5 @@
 import re
-from exceptions.exception import SyntaxErrorException
+from exceptions import SyntaxErrorException
 
 class Parser:
     def __init__(self, tokens):

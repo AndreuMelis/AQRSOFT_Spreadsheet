@@ -1,4 +1,4 @@
-from cell_content import CellContent
+from content.cell_content import CellContent
 from typing import Union, List, Any
 class Cell:
     def __init__(self, coordinate: tuple, content: CellContent = None):
