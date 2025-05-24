@@ -1,5 +1,5 @@
 from cell import Cell
-
+# TODO -> check what is needed in compute formula when passing a spreadsheet
 class Spreadsheet():
     def __init__(self):
         self.cells = {}
@@ -9,5 +9,4 @@ class Spreadsheet():
     
     def add_cell(self, coords: tuple, cell: Cell) -> None:
         self.cells[coords] = cell
-    
     
