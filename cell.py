@@ -2,16 +2,17 @@ from cell_content import CellContent
 from typing import Union, List, Any
 class Cell:
     def __init__(self, coordinate: tuple, content: CellContent = None):
-        self._coordinate = coordinate
+        self._coordinate = Coordinate(coordinate[0], coordinate[1])
         self._content = content
 
+    # TODO -> check how return of coordinates is needed
     @property
     def coordinate(self) -> tuple:
         return self._coordinate
     
     @coordinate.setter
-    def coordinate(self, value: tuple) -> None:
-        self._coordinate = value
+    def coordinate(self, coordinate: tuple) -> None:
+        self._coordinate = Coordinate(coordinate[0], coordinate[1])
 
     @property
     def content(self) -> CellContent:
@@ -43,7 +44,7 @@ class Number:
         return self._value
 
 class Coordinate:
-    def __init__(self, column: str, row: int):
+    def __init__(self, column: str, row: str):
         self._row = row
         self._column = column
 
@@ -56,11 +57,11 @@ class Coordinate:
         self._column = value
 
     @property
-    def row(self) -> int:
+    def row(self) -> str:
         return self._row
 
     @row.setter
-    def row(self, value: int) -> None:
+    def row(self, value: str) -> None:
         self._row = value
 
 class CellRange:

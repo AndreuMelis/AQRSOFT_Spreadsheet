@@ -25,8 +25,9 @@ class PROMEDIO(Function):
 # Function argument types
 class FunctionArgument(ABC):
     """Base class for function arguments"""
-    pass
-
+    @abstractmethod
+    def get_value(self, spreadsheet = None):
+        pass
 class CellArgument(FunctionArgument):
     def __init__(self, cell: Cell) -> None:
         self.cell = cell
@@ -44,8 +45,8 @@ class CellRangeArgument(FunctionArgument):
     def __init__(self, origin: str, destination: str) -> None:
         self.cell_range: CellRange = CellRange(origin, destination)
     
-    def get_value(self, spreadsheet_context):
-        return self.cell_range.get_values(spreadsheet_context)
+    def get_value(self, spreadsheet):
+        return self.cell_range.get_values(spreadsheet)
 
 class NumericArgument(FunctionArgument):
     def __init__(self, value: Union[int, float]) -> None:

@@ -2,7 +2,7 @@ from cell_content import CellContent
 from cell import Number, Cell
 from function import Function
 from abc import ABC, abstractmethod
-from typing import Any, List, Union, Optional
+from typing import Any, List, Union
 from function import FunctionArgument
 
 # TODO -> define FormulaContent completely, tokenizer, parser, evaluate function, perform operation...
@@ -47,12 +47,13 @@ class FormulaElement(ABC):
     @abstractmethod
     def accept(self, visitor: FormulaElementVisitor) -> Any:
         pass
+
 # TODO -> define the ArithmeticOperator class
 class Operator(FormulaElement):
     """Represents mathematical operators in formulas"""
     
     def __init__(self, operator_type: str) -> None:
-        self.type: str = operator_type
+        self.operator_type: str = operator_type
 
     def accept(self, visitor: FormulaElementVisitor) -> Any:
         return visitor.visit_operator(self)
@@ -72,7 +73,7 @@ class NumericOperand(Operand):
     def __init__(self, value: Union[int, float]) -> None:
         self.value: Number = Number(value)
 
-    def get_value(self, spreadsheet = None) -> Number:
+    def get_value(self, spreadsheet = None) -> Union[int, float]:
         return self.value.get_value()
 
 class CellOperand(Operand):
@@ -91,7 +92,7 @@ class FunctionOperand(Operand):
         self.function: Function = func
         self.arguments: List[FunctionArgument] = arguments
 
-    def get_value(self, spreadsheet = None):
+    def get_value(self, spreadsheet):
         values = []
         for arg in self.arguments:
             v = arg.get_value(spreadsheet)
@@ -105,15 +106,15 @@ class FunctionOperand(Operand):
 class PostfixEvaluationVisitor(FormulaElementVisitor):
     def __init__(self, spreadsheet):
         self.spreadsheet = spreadsheet
-        self.evaluation_stack = []
+        self.evaluation_stack: List[Union[int, float]] = []
     
-    def visit_operator(self, operator):
+    def visit_operator(self, operator: Operator):
         # Pop necessary operands from stack
         right_operand = self.evaluation_stack.pop()
         left_operand = self.evaluation_stack.pop()
         
         # Perform operation and push result
-        result = self._perform_operation(operator.type, left_operand, right_operand)
+        result = self._perform_operation(operator.operator_type, left_operand, right_operand)
         self.evaluation_stack.append(result)
     
     def visit_operand(self, operand: Operand):
