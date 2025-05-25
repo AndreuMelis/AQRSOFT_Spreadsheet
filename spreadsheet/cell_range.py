@@ -1,5 +1,5 @@
 from spreadsheet.cell import Cell
-from typing import Union, List, Any
+from typing import Union, List, Any, Tuple
 
 class CellRange:
     def __init__(self, origin: str, destination: str) -> None:
@@ -25,7 +25,7 @@ class CellRange:
             letters.append(chr(rem + ord('A')))
         return ''.join(reversed(letters))
 
-    def _split_coord(self, coord: str) -> (str, int):
+    def _split_coord(self, coord: str) -> Tuple[str, int]:
         """
         Split 'BC23' → ('BC', 23)
         """
