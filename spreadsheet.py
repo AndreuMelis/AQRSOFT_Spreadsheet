@@ -10,4 +10,3 @@ class Spreadsheet():
     def add_cell(self, coords: tuple, cell: Cell) -> None:
         self.cells[coords] = cell
     
-    
