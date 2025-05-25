@@ -1,4 +1,4 @@
-from cell_content import CellContent
+from content.cell_content import CellContent
 from typing import Union, List, Any
 class Cell:
     def __init__(self, coordinate: tuple, content: CellContent = None):
@@ -63,19 +63,3 @@ class Coordinate:
     @row.setter
     def row(self, value: str) -> None:
         self._row = value
-
-class CellRange:
-        def __init__(self, origin: str, destination: str) -> None:
-            self.origin_cell = origin
-            self.dest_cell = destination
-        # TODO
-        def get_cells(self, spreadsheet) -> List[Cell]:
-            """
-            Use spreadsheet to resolve cell references (e.g. "A1" to Cell object)
-            and return a flat list of Cell objects between origin and destination.
-            """
-            # Implement logic to return all cells in the range as Cell objects
-            pass
-
-        def get_values(self, spreadsheet) -> List[Any]:
-            return [cell.get_value() for cell in self.get_cells(spreadsheet)]

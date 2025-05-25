@@ -1,9 +1,9 @@
-from cell_content import CellContent
-from cell import Number, Cell
-from function import Function
+from content.cell_content import CellContent
+from spreadsheet.cell import Number, Cell
+from formula.function import Function
 from abc import ABC, abstractmethod
-from typing import Any, List, Union
-from function import FunctionArgument
+from typing import Any, List, Union, Optional
+from formula.function  import FunctionArgument
 
 # TODO -> define FormulaContent completely, tokenizer, parser, evaluate function, perform operation...
 """

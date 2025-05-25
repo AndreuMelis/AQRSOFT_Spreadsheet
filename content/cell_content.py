@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Union
-from cell import Number
+from spreadsheet.cell import Number
 class CellContent(ABC):
     @abstractmethod
     def get_value(self):
