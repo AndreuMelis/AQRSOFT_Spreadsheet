@@ -1,4 +1,4 @@
-from cell import Cell
+from AQRSOFT_Spreadsheet.spreadsheet.cell import Cell
 # TODO -> check what is needed in compute formula when passing a spreadsheet
 class Spreadsheet():
     def __init__(self):

@@ -1,5 +1,5 @@
-from cell import CellRange
-from spreadsheet import Spreadsheet
+from AQRSOFT_Spreadsheet.spreadsheet.cell import CellRange
+from AQRSOFT_Spreadsheet.spreadsheet.spreadsheet import Spreadsheet
 
 class DisplayContent:
 

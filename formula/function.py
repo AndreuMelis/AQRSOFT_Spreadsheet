@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, List, Union, Optional
-from cell import Cell, Number, CellRange
+from AQRSOFT_Spreadsheet.spreadsheet.cell import Cell, Number, CellRange
+import re
 
 # Abstract base for all spreadsheet functions
 # TODO -> implement the function methods
@@ -54,7 +55,17 @@ class NumericArgument(FunctionArgument):
     
     def get_value(self, spreadsheet = None) -> Number:
         return self.value.get_value()
-# TODO 
+
 class FunctionEvaluator:
-    def __init__(self):
-        pass
+    """
+    Utility for quick evaluation of simple formulas by regex.
+    """
+    @staticmethod
+    def evaluate_max_operand(formula: str) -> float:
+        operands = [float(o) for o in re.findall(r'\b\d+(\.\d+)?\b', formula)]
+        return max(operands) if operands else 0.0
+
+    @staticmethod
+    def evaluate_min_operand(formula: str) -> float:
+        operands = [float(o) for o in re.findall(r'\b\d+(\.\d+)?\b', formula)]
+        return min(operands) if operands else 0.0

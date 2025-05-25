@@ -1,5 +1,5 @@
 import os
-from cell import Cell
+from AQRSOFT_Spreadsheet.spreadsheet.cell import Cell
 from exceptions import (
     InvalidFileNameException,
     InvalidFilePathException,

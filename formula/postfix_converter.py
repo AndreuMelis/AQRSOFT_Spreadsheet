@@ -2,7 +2,7 @@ from exceptions import InvalidPostfixException
 
 class PostfixConverter:
     def __init__(self):
-        # TODO: Initialize operator precedence rules
+        # TODO: Initialize operator precedence ruless
         pass
 
     def to_postfix(self, tokens):
