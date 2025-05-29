@@ -27,8 +27,7 @@ class FormulaElement(ABC):
 
 # Generic postifxevaluation copied from claude -
 class PostfixEvaluationVisitor(FormulaElementVisitor):
-    def __init__(self, spreadsheet):
-        self.spreadsheet = spreadsheet
+    def __init__(self):
         self.evaluation_stack: List[Union[int, float]] = []
     
     def visit_operator(self, operator: Operator):
@@ -41,7 +40,7 @@ class PostfixEvaluationVisitor(FormulaElementVisitor):
         self.evaluation_stack.append(result)
     
     def visit_operand(self, operand: Operand):
-        value = operand.get_value(self.spreadsheet)
+        value = operand.get_value()
         self.evaluation_stack.append(value)
 
     # TODO claude has generated code for these functions but I have not copied for clarity first
@@ -63,15 +62,12 @@ class PostfixExpressionEvaluator:
     def evaluate_postfix_expression(
         self, 
         postfix_expression: List[FormulaElement], 
-        spreadsheet
     ) -> Union[int, float]:
         """
         Evaluate a postfix expression and return the result
         
         Args:
-            postfix_expression: List of FormulaElement objects in postfix order
-            spreadsheet: Context for accessing spreadsheet data
-            
+            postfix_expression: List of FormulaElement objects in postfix order            
         Returns:
             Numeric result of the evaluation
             
@@ -82,7 +78,7 @@ class PostfixExpressionEvaluator:
         if not postfix_expression:
             raise InvalidPostfixException("Empty postfix expression")
         
-        visitor = PostfixEvaluationVisitor(spreadsheet)
+        visitor = PostfixEvaluationVisitor()
         
         # Process each element in postfix order
         for element in postfix_expression:

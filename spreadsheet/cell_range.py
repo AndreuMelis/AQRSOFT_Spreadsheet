@@ -56,4 +56,4 @@ class CellRange:
         """
         Return the evaluated values of each cell in the range.
         """
-        return [cell.get_value(spreadsheet) for cell in self.get_cells(spreadsheet)]
+        return [cell.get_value() for cell in self.get_cells(spreadsheet)]

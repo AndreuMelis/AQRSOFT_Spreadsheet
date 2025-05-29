@@ -1,6 +1,9 @@
 import re
 from exceptions import SyntaxErrorException
-
+from spreadsheet.spreadsheet import Spreadsheet
+from typing import Union
+from formula.operand import Operand
+from formula.operator import Operator
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
@@ -19,7 +22,11 @@ class Parser:
             return self.tokens[self.current_index]
         return None
 
-    def parse(self):
+    def parse_tokens(self, spreadsheet: Spreadsheet) -> list[Union[Operand, Operator]]:
+        """
+        Validates the syntax of tokenized formula component.
+        Converts token strings to operands and operators.
+        """
         if not self.tokens:
             raise SyntaxErrorException("No tokens to parse")
 
@@ -101,3 +108,18 @@ class Parser:
 
     def is_number(self, token):
         return re.match(r'^\d+\.?\d*$', token) is not None
+
+    def is_operator(self) -> Operator:
+        """
+        Converts the token string to an operator
+        """
+        # TODO
+        pass
+
+    def is_operand(self, spreadsheet: Spreadsheet) -> Operand:
+        """
+        Converts the token string to an operand
+        If operand is cell, need to resolve the reference with the spreadsheet
+        """
+        # TODO
+        pass

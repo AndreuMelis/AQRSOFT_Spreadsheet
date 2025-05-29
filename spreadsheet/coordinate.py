@@ -18,3 +18,11 @@ class Coordinate:
     @row.setter
     def row(self, value: int) -> None:
         self._row = value
+
+    def __eq__(self, other):
+        if not isinstance(other, Coordinate):
+            return False
+        return self._column == other._column and self._row == other._row
+
+    def __hash__(self):
+        return hash((self._column, self._row))

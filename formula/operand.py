@@ -6,7 +6,7 @@ from spreadsheet.cell import Number, Cell
 
 class Operand(FormulaElement):
     @abstractmethod
-    def get_value(self, spreadsheet = None):
+    def get_value(self):
         """Each operand type implements its own value resolution logic"""
         pass
 
@@ -19,7 +19,7 @@ class NumericOperand(Operand):
     def __init__(self, value: Union[int, float]) -> None:
         self.value: Number = Number(value)
 
-    def get_value(self, spreadsheet = None) -> Number:
+    def get_value(self) -> Number:
         return self.value.get_value()
 
 class CellOperand(Operand):
@@ -28,7 +28,7 @@ class CellOperand(Operand):
     def __init__(self, cell: Cell) -> None:
         self.cell = cell
 
-    def get_value(self, spreadsheet = None):
+    def get_value(self):
         return self.cell.get_value()
     
 class FunctionOperand(Operand):
@@ -38,6 +38,8 @@ class FunctionOperand(Operand):
         self.function: Function = func
         self.arguments: List[FunctionArgument] = arguments
 
+    # TODO -> segons el J.C. no hauriem de necessitar l'spreadsheet per resoldre la funcio
+    # depen del get_values del cell_range argument type
     def get_value(self, spreadsheet = None):
         values = []
         for arg in self.arguments:

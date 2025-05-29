@@ -9,6 +9,10 @@ class Operator(FormulaElement):
 
     def accept(self, visitor: FormulaElementVisitor) -> Any:
         return visitor.visit_operator(self)
+    
+    @property
+    def operator_type(self) -> str:
+        return self.type
 
 class OperatorEvaluator:
     def __init__(self):
