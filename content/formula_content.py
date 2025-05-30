@@ -11,6 +11,7 @@ from formula.parser import Parser
 from formula.postfix_converter import PostfixConverter
 from formula.dependency_manager import DependencyManager
 from spreadsheet.spreadsheet import Spreadsheet
+from spreadsheet.dependency_manager import DependencyManager
 
 # TODO -> define FormulaContent completely, tokenizer, parser, evaluate function, perform operation...
 # Incomplete, just for clarity
@@ -27,24 +28,25 @@ class FormulaContent(CellContent):
             raise ValueError("Invalid formula format: must start with '='")
 
         raw_expression = self.formula[1:]
-        # create a list of tokens from the formula string
-        """
-        SEGONS EL NOSTRE DISSENY CREC QUE LA LLISTA DE TOKENS HAN DE SER OPERANDS I OPERATORS, 
-        NO STRINGS, I SEGONS EL JUAN CARLOS SI HO FEM AIXÍ NO NECESSITAREM L'SPREADSHEET PER
-        RESOLDRE CAP REFERÈNCIA. LA CONVERSIÓ A OPERANDS I OPERATORS HA DE SER DINS PARSER, 
-        SEGONS EL NOSTRE DISSENY
 
-        """
+        # Step 1: Tokenize into raw strings (e.g., ['A1', '+', '3'])
         tokens = self.tokenize(raw_expression)
-        # validates the syntax of a tokenized formula components
-        tokens = self.parse_tokens(tokens, spreadsheet)
-        # TODO -> where to place check_circular_dependencies so it has access to current and referenced cells
-        # the spreadsheet is passed to get_value, it can be used
-        self.check_circular_dependencies(spreadsheet)
-        postfix_tokens = self.convert_to_postfix(tokens)
 
+        # Step 2: Parse into typed tokens (Operator, Operand, Reference, etc.)
+        # No cell value resolution should happen here
+        typed_tokens = self.parse_tokens(tokens)
+
+        # Step 3: Check for circular dependencies — we pass spreadsheet to trace references
+        self.check_circular_dependencies(spreadsheet)
+
+        # Step 4: Convert to postfix for evaluation
+        postfix_tokens = self.convert_to_postfix(typed_tokens)
+
+        # Step 5: Evaluate postfix expression — now we resolve references using the spreadsheet
         result = self.evaluate_postfix(postfix_tokens, spreadsheet)
+
         return result
+
 
     def validate_formula_format(self) -> bool:
         """
@@ -68,11 +70,29 @@ class FormulaContent(CellContent):
 
     def check_circular_dependencies(self, spreadsheet: Spreadsheet):
         """
-        Validates the syntax of tokenized formula component.
+        Extracts the current cell and all referenced cells from the formula,
+        and checks for circular dependencies.
         """
-        pass
-        # TODO -> from spreadsheet and formula attribute extract the current cell and referenced cells
-        # DependencyManager.check_circular_dependencies()
+        # STEP 1 — Get the name of the current cell this formula is part of
+        current_cell = spreadsheet.get_cell_name(self)  # <-- You'll need to implement this method
+
+        # STEP 2 — Tokenize the formula and extract references
+        raw_expression = self.formula[1:]  # Remove the '='
+        tokens = self.tokenize(raw_expression)  # Returns list like ['A1', '+', 'B2']
+
+        # STEP 3 — Identify referenced cells (tokens that look like 'A1', 'C3', etc.)
+        referenced_cells = {
+            token.upper()
+            for token in tokens
+            if spreadsheet.is_valid_cell_reference(token)
+        }
+
+        # STEP 4 — Use DependencyManager to detect cycles
+        dependency_manager = spreadsheet.get_dependency_manager()  # Singleton or instance passed into spreadsheet
+        dependency_manager.check_circular_dependencies(current_cell, referenced_cells)
+
+        # STEP 5 — If all is good, update the graph
+        dependency_manager.update_dependencies(current_cell, referenced_cells)
 
     def convert_to_postfix(self, tokens):
         """
