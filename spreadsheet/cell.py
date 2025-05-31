@@ -1,5 +1,8 @@
 from content.cell_content import CellContent
 from typing import Union, List, Any
+from spreadsheet import Coordinate
+
+
 class Cell:
     def __init__(self, coordinate: tuple, content: CellContent = None):
         self._coordinate = Coordinate(coordinate[0], coordinate[1])
@@ -28,38 +31,4 @@ class Cell:
     
     # def store_content_in_cell(self):
 
-class Number:
-    def __init__(self, value: Union[int, float]):
-        self._value = value
-    
-    @property
-    def value(self) -> Union[int, float]:
-        return self._value
 
-    @value.setter
-    def value(self, value: Union[int, float]):
-        self._value = value
-    
-    def get_value(self):
-        return self._value
-
-class Coordinate:
-    def __init__(self, column: str, row: str):
-        self._row = row
-        self._column = column
-
-    @property
-    def column(self) -> str:
-        return self._column
-
-    @column.setter
-    def column(self, value: str) -> None:
-        self._column = value
-
-    @property
-    def row(self) -> str:
-        return self._row
-
-    @row.setter
-    def row(self, value: str) -> None:
-        self._row = value

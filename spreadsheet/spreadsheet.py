@@ -1,6 +1,7 @@
 from spreadsheet.cell import Cell
 from spreadsheet.coordinate import Coordinate
 import re
+
 # TODO -> check what is needed in compute formula when passing a spreadsheet
 class Spreadsheet():
     def __init__(self):
