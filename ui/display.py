@@ -1,4 +1,4 @@
-from spreadsheet.cell import CellRange
+from spreadsheet.cell_range import CellRange
 from spreadsheet.spreadsheet import Spreadsheet
 
 class DisplayContent:

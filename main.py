@@ -1,5 +1,5 @@
 from spreadsheet.spreadsheet import Spreadsheet
-from ui import TerminalUI
+from ui.terminal_ui import TerminalUI
 
 if __name__ == "__main__":
 

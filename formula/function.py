@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, List, Union, Optional
-from spreadsheet.cell import Cell, Number
+from spreadsheet.cell import Cell
+from content.number import Number
 from spreadsheet.cell_range import CellRange
 from spreadsheet.spreadsheet import Spreadsheet
 import re

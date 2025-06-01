@@ -1,21 +1,24 @@
+# ui/TerminalUI.py
 import os
 import re
 
-from content import NumericalContent, TextContent, FormulaContent
-from io import LoadFile, SaveFile
-from spreadsheet import Spreadsheet
-from spreadsheet import Cell
-from exceptions import (
+from content.numerical_content import NumericContent
+from content.text_content      import TextContent
+from content.formula_content   import FormulaContent
+from fileio.load_file              import LoadFile
+from fileio.save_file              import SaveFile
+from spreadsheet.spreadsheet   import Spreadsheet
+from spreadsheet.cell          import Cell
+from exceptions                import (
     InvalidFileNameException,
     InvalidFilePathException,
     FileNotFoundException,
     InvalidCellReferenceException
 )
 
-
 class TerminalUI:
-    def __init__(self, spreadsheet: 'Spreadsheet'):
-        self.sheet = spreadsheet  # Initialize the User Interface with a spreadsheet instance
+    def __init__(self, spreadsheet: Spreadsheet):
+        self.sheet = spreadsheet
         self.loader = LoadFile()
         self.saver = SaveFile()
 
@@ -84,23 +87,25 @@ class TerminalUI:
         self.sheet.print_spreadsheet()
         print("New spreadsheet created.")
 
-    def edit_cell(self, cell_coord, cell_content):
+    def edit_cell(self, cell_coord: str, cell_content: str):
         try:
             column, row_num = self.parse_coordinate(cell_coord.upper())
-            if cell_content.startswith('='):
-                new_content = FormulaContent(cell_content[1:])
-            elif cell_content.isdigit():
-                new_content = NumericalContent(float(cell_content))
-            else:
-                new_content = TextContent(cell_content)
 
-            new_cell = Cell((column, row_num), new_content)
+            # Elegimos el tipo de contenido según el texto ingresado
+            if cell_content.startswith('='):
+                content_obj = FormulaContent(cell_content)
+            elif cell_content.isdigit():
+                content_obj = NumericContent(float(cell_content))
+            else:
+                content_obj = TextContent(cell_content)
+
+            new_cell = Cell((column, row_num), content_obj)
             self.sheet.add_cell((column, row_num), new_cell)
             self.sheet.print_spreadsheet()
         except InvalidCellReferenceException as err:
             print(f"Error: {err}")
 
-    def load_spreadsheet(self, file_path):
+    def load_spreadsheet(self, file_path: str):
         try:
             self.loader.validate_file_format(file_path)
             spreadsheet_data = self.loader.load_spreadsheet_data(file_path)
@@ -109,13 +114,14 @@ class TerminalUI:
         except (InvalidFilePathException, InvalidFileNameException, FileNotFoundException) as e:
             print(f"Error: {e}")
 
-    def save_spreadsheet(self, spreadsheet):
+    def save_spreadsheet(self, spreadsheet: Spreadsheet):
         try:
             self.saver.run_saver(spreadsheet)
         except (InvalidFileNameException, InvalidFilePathException, FileNotFoundException) as e:
             print(f"Error: {e}")
 
-    def parse_coordinate(self, coord):
+    def parse_coordinate(self, coord: str) -> tuple[str, int]:
+        import re
         match = re.match(r"^([A-Z]+)(\d+)$", coord)
         if match:
             column = match.group(1)
@@ -124,6 +130,6 @@ class TerminalUI:
         else:
             raise InvalidCellReferenceException(f"Invalid cell coordinate: {coord}")
 
-    def format_coordinate_for_display(self, coord):
+    def format_coordinate_for_display(self, coord: tuple[str, int]) -> str:
         column, row = coord
         return f"\033[34m{column}\033[0m\033[32m{row}\033[0m"
