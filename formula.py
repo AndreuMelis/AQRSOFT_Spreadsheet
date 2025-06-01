@@ -190,11 +190,3 @@ class FormulaParser:
 class Tokenizer:
     def __init__(self):
         pass
-
-class PostfixConverter:
-    def __init__(self):
-        pass
-
-class OperatorEvaluator:
-    def __init__(self):
-        pass

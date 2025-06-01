@@ -33,8 +33,8 @@ class FormulaContent(CellContent):
         tokens = self.tokenize(raw_expression)
 
         # Step 2: Parse into typed tokens (Operator, Operand, Reference, etc.)
-        # No cell value resolution should happen here (why?)
-        typed_tokens = self.parse_tokens(tokens, spreadsheet)
+        # No cell value resolution should happen here
+        typed_tokens = self.parse_tokens(tokens)
 
         # Step 3: Check for circular dependencies — we pass spreadsheet to trace references
         self.check_circular_dependencies(spreadsheet)

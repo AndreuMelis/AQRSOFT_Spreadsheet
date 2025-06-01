@@ -35,6 +35,7 @@ class FunctionArgument(ABC):
     @abstractmethod
     def get_value(self, spreadsheet = None):
         pass
+    
 class CellArgument(FunctionArgument):
     def __init__(self, cell: Cell) -> None:
         self.cell = cell
