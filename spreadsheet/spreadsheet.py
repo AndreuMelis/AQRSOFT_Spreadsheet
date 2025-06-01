@@ -3,6 +3,7 @@ from spreadsheet.coordinate import Coordinate
 import re
 from typing import List
 # TODO -> check what is needed in compute formula when passing a spreadsheet
+
 class Spreadsheet():
     def __init__(self):
         self.cells: List[Cell] = {}
