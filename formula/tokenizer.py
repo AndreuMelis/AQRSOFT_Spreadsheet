@@ -39,7 +39,7 @@ class Tokenizer:
             if kind == 'SKIP':
                 pass  # Ignore whitespace
             elif kind == 'NUMBER':
-                value = float(value) if '.' in value else int(value)
+                # value = float(value) if '.' in value else int(value)
                 tokens.append((kind, value))
             elif kind == 'MISMATCH':
                 raise TokenizingErrorException(f"Incorrect formula: '{value}' in '{formula}'")

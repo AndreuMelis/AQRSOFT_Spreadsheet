@@ -1,10 +1,11 @@
 from spreadsheet.cell import Cell
 from spreadsheet.coordinate import Coordinate
 import re
+from typing import List
 # TODO -> check what is needed in compute formula when passing a spreadsheet
 class Spreadsheet():
     def __init__(self):
-        self.cells = {}
+        self.cells: List[Cell] = {}
 
     def get_cell(self, coords: Coordinate) -> Cell:
         return self.cells.get(coords)

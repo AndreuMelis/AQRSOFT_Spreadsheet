@@ -1,59 +1,57 @@
 from spreadsheet.cell import Cell
+from spreadsheet.coordinate import Coordinate
+from spreadsheet.spreadsheet import Spreadsheet
+import re
 from typing import Union, List, Any, Tuple
 
 class CellRange:
     def __init__(self, origin: str, destination: str) -> None:
         self.origin_cell = origin.upper()
         self.dest_cell   = destination.upper()
+        
+    def get_values(self, spreadsheet: Spreadsheet):
+        """
+        Returns a list of cells in the range from origin_cell to dest_cell (inclusive).
+        """
 
-    def _col_to_index(self, col: str) -> int:
-        """
-        Convert column letters (e.g. 'A', 'Z', 'AA') to 1-based index.
-        """
-        idx = 0
-        for c in col:
-            idx = idx * 26 + (ord(c) - ord('A') + 1)
-        return idx
+        def parse_ref(ref):
+            match = re.match(r'^([A-Z]+)(\d+)$', ref)
+            if not match:
+                raise ValueError(f"Invalid cell reference: {ref}")
+            col_str, row_str = match.groups()
+            return col_str, int(row_str)
 
-    def _index_to_col(self, idx: int) -> str:
-        """
-        Convert 1-based column index back to letters.
-        """
-        letters = []
-        while idx:
-            idx, rem = divmod(idx - 1, 26)
-            letters.append(chr(rem + ord('A')))
-        return ''.join(reversed(letters))
+        origin_col, origin_row = parse_ref(self.origin_cell)
+        dest_col, dest_row = parse_ref(self.dest_cell)
 
-    def _split_coord(self, coord: str) -> Tuple[str, int]:
-        """
-        Split 'BC23' → ('BC', 23)
-        """
-        col = ''.join(ch for ch in coord if ch.isalpha())
-        row = ''.join(ch for ch in coord if ch.isdigit())
-        return col, int(row)
+        if origin_col > dest_col or origin_row > dest_row:
+            raise ValueError("Start cell must be before or the same as end cell")
 
-    def get_cells(self, spreadsheet) -> List[Cell]:
-        """
-        Return all Cell objects in the rectangular range from origin to destination.
-        """
-        col1, row1 = self._split_coord(self.origin_cell)
-        col2, row2 = self._split_coord(self.dest_cell)
+        def col_to_num(col):
+            num = 0
+            for c in col:
+                num = num * 26 + (ord(c) - ord('A') + 1)
+            return num
 
-        c1 = self._col_to_index(col1)
-        c2 = self._col_to_index(col2)
-        r1, r2 = min(row1, row2), max(row1, row2)
-        c1, c2 = min(c1, c2), max(c1, c2)
+        def num_to_col(num):
+            col = ''
+            while num > 0:
+                num, rem = divmod(num - 1, 26)
+                col = chr(rem + ord('A')) + col
+            return col
 
-        cells: List[Cell] = []
-        for ci in range(c1, c2 + 1):
-            col_letter = self._index_to_col(ci)
-            for r in range(r1, r2 + 1):
-                cells.append(spreadsheet.get_cell((col_letter, r)))
-        return cells
+        start_col_num = col_to_num(origin_col)
+        end_col_num = col_to_num(dest_col)
+        start_row = min(origin_row, dest_row)
+        end_row = max(origin_row, dest_row)
+        start_col_num, end_col_num = min(start_col_num, end_col_num), max(start_col_num, end_col_num)
 
-    def get_values(self, spreadsheet) -> List[Any]:
-        """
-        Return the evaluated values of each cell in the range.
-        """
-        return [cell.get_value() for cell in self.get_cells(spreadsheet)]
+        values = []
+        for col_num in range(start_col_num, end_col_num + 1):
+            col_str = num_to_col(col_num)
+            for row in range(start_row, end_row + 1):
+                coord = Coordinate(col_str, row)
+                cell = spreadsheet.get_cell(coord)
+                if cell:
+                    values.append(cell)
+        return values

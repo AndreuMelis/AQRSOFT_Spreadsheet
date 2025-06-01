@@ -9,7 +9,7 @@ from formula.operand import Operand
 from formula.operator import Operator
 from formula.parser import Parser
 from formula.postfix_converter import PostfixConverter
-from formula.dependency_manager import DependencyManager
+from spreadsheet.dependency_manager import DependencyManager
 from spreadsheet.spreadsheet import Spreadsheet
 from spreadsheet.dependency_manager import DependencyManager
 
@@ -33,8 +33,8 @@ class FormulaContent(CellContent):
         tokens = self.tokenize(raw_expression)
 
         # Step 2: Parse into typed tokens (Operator, Operand, Reference, etc.)
-        # No cell value resolution should happen here
-        typed_tokens = self.parse_tokens(tokens)
+        # No cell value resolution should happen here (why?)
+        typed_tokens = self.parse_tokens(tokens, spreadsheet)
 
         # Step 3: Check for circular dependencies — we pass spreadsheet to trace references
         self.check_circular_dependencies(spreadsheet)
@@ -43,7 +43,7 @@ class FormulaContent(CellContent):
         postfix_tokens = self.convert_to_postfix(typed_tokens)
 
         # Step 5: Evaluate postfix expression — now we resolve references using the spreadsheet
-        result = self.evaluate_postfix(postfix_tokens, spreadsheet)
+        result = self.evaluate_postfix(postfix_tokens)
 
         return result
 
@@ -60,12 +60,12 @@ class FormulaContent(CellContent):
         """
         return Tokenizer.tokenize(expression)
     
-    def parse_tokens(self, tokens: list):
+    def parse_tokens(self, tokens: list, spreadsheet: Spreadsheet):
         """
         Validates the syntax of tokenized formula component.
         """
         parser = Parser(tokens)
-        tokens = parser.parse_tokens()
+        tokens = parser.parse_tokens(spreadsheet)
         return 
 
     def check_circular_dependencies(self, spreadsheet: Spreadsheet):

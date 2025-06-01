@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Union, Optional
 from spreadsheet.cell import Cell, Number
 from spreadsheet.cell_range import CellRange
+from spreadsheet.spreadsheet import Spreadsheet
 import re
 
 # Abstract base for all spreadsheet functions
@@ -18,6 +19,10 @@ class SUMA(Function):
 class MAX(Function):
     def evaluate(self, arguments: List[Any]) -> Any:
         return max(arguments)
+
+class MIN(Function):
+    def evaluate(self, arguments: List[Any]) -> Any:
+        return min(arguments)
 
 class PROMEDIO(Function):
     def evaluate(self, arguments: List[Any]) -> Any:
@@ -39,16 +44,26 @@ class CellArgument(FunctionArgument):
         Spreadsheet needed to match with CellRangeArgument get_values()
         """
         return self.cell.get_value()
+    
+    @classmethod
+    def create_from_token(cls, token_value, spreadsheet: Spreadsheet = None) -> 'CellArgument':
+        """Create CellOperand from cell reference token"""
+        cell = Cell.from_token(token_value, spreadsheet)
+        return cls(cell)
 
 class CellRangeArgument(FunctionArgument):
     """
     Returns teh values of all the cells inside the range
     """
-    def __init__(self, origin: str, destination: str) -> None:
+    def __init__(self, origin: str, destination: str, spreadsheet: Spreadsheet) -> None:
         self.cell_range: CellRange = CellRange(origin, destination)
+        self.cells: List[Cell] = self.cell_range.get_values(spreadsheet)
     
-    def get_value(self, spreadsheet):
-        return self.cell_range.get_values(spreadsheet)
+    def get_values(self):
+        """
+        TODO-> ceck if to return list of cell values or list of cells
+        """
+        return self.cells # [cell.get_value() for cell in self.cells]
 
 class NumericArgument(FunctionArgument):
     def __init__(self, value: Union[int, float]) -> None:
