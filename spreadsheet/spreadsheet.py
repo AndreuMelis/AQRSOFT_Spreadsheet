@@ -1,6 +1,3 @@
-# --------------------------------------------------------------------------------------------------
-# Archivo: spreadsheet/spreadsheet.py
-# --------------------------------------------------------------------------------------------------
 from .cell import Cell
 from .coordinate import Coordinate
 import re
@@ -22,13 +19,11 @@ class Spreadsheet:
         return re.findall(r'[A-Z]+\d+', formula_str)
     
     def print_spreadsheet(self) -> None:
-        # Ordena las coordenadas por (fila, columna)
+        # Now each key is a Coordinate, so .row and .column exist
         sorted_coords = sorted(self.cells.keys(), key=lambda c: (c.row, c.column))
-        # Extrae todos los números de fila y letras de columna únicos
         rows = sorted({coord.row for coord in sorted_coords})
         columns = sorted({coord.column for coord in sorted_coords})
 
-        # Primera línea: encabezados de columna
         print("\t" + "\t".join(columns))
         for row in rows:
             row_values = []
@@ -36,9 +31,9 @@ class Spreadsheet:
                 coord = Coordinate(column, row)
                 if coord in self.cells:
                     cell = self.get_cell(coord)
-                    # Al pedir el valor, le pasamos la propia hoja (self)
                     value = cell.content.get_value(self)
                     row_values.append(value)
                 else:
                     row_values.append('')
             print(f"{row}\t" + "\t".join(str(v) for v in row_values))
+
