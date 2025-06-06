@@ -1,36 +1,36 @@
-# spreadsheet/formula/formula_element.py
-from __future__ import annotations
+# --------------------------------------------------------------------------------------------------
+# Archivo: formula/formula_element.py
+# --------------------------------------------------------------------------------------------------
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # Solo para chequeo de tipos, no genera import en tiempo de ejecución
+    from .operand import Operand
+    from .operator import Operator
+    from .function import Function
+
+class FormulaElementVisitor(ABC):
+    """Visitor interface para elementos de fórmula (operandos, operadores, funciones)."""
+
+    @abstractmethod
+    def visit_operand(self, operand: "Operand") -> None:
+        pass
+
+    @abstractmethod
+    def visit_operator(self, operator: "Operator") -> None:
+        pass
+
+    @abstractmethod
+    def visit_function(self, function: "Function") -> None:
+        pass
 
 
 class FormulaElement(ABC):
-    """
-    Clase base para todos los elementos de una fórmula en notación *postfix*
-    (RPN).  Sus subclases típicas son:
-
-        • Operand   — envuelve valores (Number, CellOperand, FunctionOperand…)
-        • Operator  — +, -, *, /, ^, …
-
-    Cada elemento expone `accept(visitor)` para que un `FormulaElementVisitor`
-    pueda despacharlo mediante *double-dispatch*.
-    """
-
-    __slots__ = ()  # Evita diccionario interno; ahorra memoria
+    """Clase base para todos los elementos de una expresión postfix (operandos, operadores, funciones)."""
 
     @abstractmethod
-    def accept(self, visitor: "FormulaElementVisitor") -> Any:  # noqa: F821
-        """
-        Punto de entrada al patrón Visitor.
+    def accept(self, visitor: FormulaElementVisitor) -> Any:
+        pass
 
-        Args:
-            visitor (FormulaElementVisitor): Implementación concreta que sabrá
-                cómo procesar el elemento (evaluación, serialización, etc.).
-
-        Returns:
-            Any: Valor devuelto por el visitor.  Normalmente será un número
-                (`float`) en el caso del `PostfixEvaluationVisitor`, pero se
-                deja abierto para otros usos (pretty-print, optimización…).
-        """
-        raise NotImplementedError

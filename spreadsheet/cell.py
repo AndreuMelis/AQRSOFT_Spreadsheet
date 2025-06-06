@@ -1,53 +1,59 @@
+# --------------------------------------------------------------------------------------------------
+# Archivo: spreadsheet/cell.py
+# --------------------------------------------------------------------------------------------------
 from content.cell_content import CellContent
-from spreadsheet.spreadsheet import Spreadsheet
-from typing import Union, List, Any
-from spreadsheet import Coordinate
+from .coordinate import Coordinate
+import re
+from typing import Optional, Any, TYPE_CHECKING
+
+# Si se desea usar "Spreadsheet" como type hint sin que se importe en tiempo de ejecución:
+if TYPE_CHECKING:
+    from .spreadsheet import Spreadsheet
 
 
 class Cell:
-    def __init__(self, coordinate: tuple, content: CellContent = None):
+    def __init__(self, coordinate: tuple[str, int], content: CellContent | None = None):
+        # coordinate viene como ("A", 1), por ejemplo
         self._coordinate = Coordinate(coordinate[0], coordinate[1])
         self._content = content
 
-    # TODO -> check how return of coordinates is needed
     @property
-    def coordinate(self) -> tuple:
+    def coordinate(self) -> Coordinate:
         return self._coordinate
     
     @coordinate.setter
-    def coordinate(self, coordinate: tuple) -> None:
+    def coordinate(self, coordinate: tuple[str, int]) -> None:
         self._coordinate = Coordinate(coordinate[0], coordinate[1])
 
     @property
-    def content(self) -> CellContent:
+    def content(self) -> CellContent | None:
         return self._content
     
     @content.setter
     def content(self, content: CellContent) -> None:
         self._content = content
 
-    # Thanks to abstract class CellContent
-    def get_value(self):
-        return self.content.get_value()
-    
-    @staticmethod
-    def from_token(token_value, spreadsheet: Spreadsheet = None) -> 'Cell':
-        """Create Cell from cell reference token"""
-        if spreadsheet is None:
-            raise ValueError("Spreadsheet is required to create CellOperand")
+    def get_value(self, spreadsheet: Optional["Spreadsheet"] = None) -> Any:
+        """
+        Devuelve el valor calculado por el content.
+        Si el contenido es fórmula, puede necesitar 'spreadsheet' para resolver referencias.
+        """
+        return self.content.get_value(spreadsheet)
 
-        # Parse cell reference (e.g., "A1" -> column=0, row=0)
-        import re
+    @staticmethod
+    def from_token(token_value: str, spreadsheet: "Spreadsheet" = None) -> "Cell":
+        """
+        Crea una instancia de Cell buscando en el spreadsheet la celda ya existente.
+        token_value = "A1", "B2", etc.
+        IMPORTAMOS Spreadsheet solo dentro de este método para evitar ciclos.
+        """
+        if spreadsheet is None:
+            raise ValueError("Spreadsheet is required to create Cell from token")
+
         match = re.match(r'^([A-Z]+)(\d+)$', str(token_value))
         if not match:
             raise ValueError(f"Invalid cell reference: {token_value}")
         
         col_str, row_str = match.groups()
         coords = Coordinate(col_str, int(row_str))
-        
-        cell = spreadsheet.get_cell(coords)
-        return cell
-    
-    # def store_content_in_cell(self):
-
-
+        return spreadsheet.get_cell(coords)

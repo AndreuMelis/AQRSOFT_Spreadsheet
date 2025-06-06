@@ -1,4 +1,4 @@
-from postfix_evaluator import FormulaElementVisitor, FormulaElement
+from formula.formula_element import FormulaElementVisitor, FormulaElement
 from abc import ABC, abstractmethod
 from typing import Any
 
