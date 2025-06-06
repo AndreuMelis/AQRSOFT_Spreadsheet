@@ -2,6 +2,7 @@ from .cell import Cell
 from .coordinate import Coordinate
 import re
 from typing import List
+from .dependency_manager import DependencyManager
 
 class Spreadsheet:
     def __init__(self):
@@ -10,6 +11,31 @@ class Spreadsheet:
 
     def get_cell(self, coords: Coordinate) -> Cell | None:
         return self.cells.get(coords)
+    
+    def get_cell_name(self, content) -> str:
+        """
+        Given a CellContent instance, find the Coordinate key whose cell has that content,
+        and return its string name (e.g. "C2"). Raises ValueError if not found.
+        """
+        for coord, cell in self.cells.items():
+            if cell.content is content:
+                return f"{coord.column}{coord.row}"
+        raise ValueError("Cell containing this content was not found.")
+    
+    def is_valid_cell_reference(self, token: str) -> bool:
+        """
+        Returns True if token matches e.g. 'A1', 'B2', etc.
+        """
+        return bool(re.fullmatch(r"[A-Z]+\d+", token))
+
+    def get_dependency_manager(self) -> DependencyManager:
+        """
+        Return (or create) the DependencyManager instance for this spreadsheet.
+        """
+        if not hasattr(self, "_dep_manager"):
+            self._dep_manager = DependencyManager()
+        return self._dep_manager
+
     
     def add_cell(self, coords: Coordinate, cell: Cell) -> None:
         self.cells[coords] = cell

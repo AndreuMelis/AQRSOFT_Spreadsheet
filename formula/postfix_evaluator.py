@@ -1,16 +1,11 @@
-# --------------------------------------------------------------------------------------------------
-# Archivo: formula/postfix_evaluator.py
-# --------------------------------------------------------------------------------------------------
+# formula/postfix_evaluator.py
 
-from typing import List, Union, Any
-from exceptions import EvaluationErrorException, InvalidPostfixException
-
-# Importamos las bases de visitor y elemento desde formula_element
 from .formula_element import FormulaElementVisitor, FormulaElement
 from .operand import Operand
 from .operator import Operator
 from .function import Function, FunctionArgument
-
+from exceptions import InvalidPostfixException, EvaluationErrorException
+from typing import List, Union
 
 class PostfixEvaluationVisitor(FormulaElementVisitor):
     """
@@ -24,11 +19,11 @@ class PostfixEvaluationVisitor(FormulaElementVisitor):
     def visit_operator(self, operator: Operator):
         if len(self.evaluation_stack) < 2:
             raise InvalidPostfixException(
-                f"Not enough operands for operator '{operator.type}'"
+                f"Not enough operands for operator '{operator.get_symbol()}'"
             )
         right = self.evaluation_stack.pop()
         left = self.evaluation_stack.pop()
-        result = self._perform_operation(operator.type, left, right)
+        result = self._perform_operation(operator.get_symbol(), left, right)
         self.evaluation_stack.append(result)
     
     def visit_operand(self, operand: Operand):
@@ -58,23 +53,23 @@ class PostfixEvaluationVisitor(FormulaElementVisitor):
     
     def _perform_operation(
         self,
-        operator_type: str,
+        operator_symbol: str,
         left: Union[int, float],
         right: Union[int, float]
     ) -> Union[int, float]:
-        """Ejecuta la operación aritmética según el tipo de operador."""
-        if operator_type == '+':
+        """Ejecuta la operación aritmética según el símbolo de operador."""
+        if operator_symbol == '+':
             return left + right
-        elif operator_type == '-':
+        elif operator_symbol == '-':
             return left - right
-        elif operator_type == '*':
+        elif operator_symbol == '*':
             return left * right
-        elif operator_type == '/':
+        elif operator_symbol == '/':
             if right == 0:
                 raise EvaluationErrorException("Division by zero")
             return left / right
         else:
-            raise EvaluationErrorException(f"Unsupported operator: {operator_type}")
+            raise EvaluationErrorException(f"Unsupported operator: {operator_symbol}")
     
     def _evaluate_function(
         self,

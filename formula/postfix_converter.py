@@ -1,3 +1,5 @@
+# formula/postfix_converter.py
+
 from exceptions import InvalidPostfixException
 from typing import List, Union
 from formula.operand import Operand
@@ -51,7 +53,7 @@ class PostfixConverter:
                     output_queue.append(token)
                     
                 elif isinstance(token, Operator):
-                    operator_symbol = token.operator_type()  #
+                    operator_symbol = token.get_symbol()  # ← use get_symbol(), not operator_type()
                     
                     if operator_symbol == '(':
                         # Left parenthesis goes on stack
@@ -62,7 +64,7 @@ class PostfixConverter:
                         found_left_paren = False
                         while operator_stack:
                             top_operator = operator_stack.pop()
-                            if isinstance(top_operator, Operator) and top_operator.operator_type() == '(':
+                            if isinstance(top_operator, Operator) and top_operator.get_symbol() == '(':
                                 found_left_paren = True
                                 break
                             output_queue.append(top_operator)
@@ -74,8 +76,8 @@ class PostfixConverter:
                         # Regular operator: handle precedence and associativity
                         while (operator_stack and 
                                isinstance(operator_stack[-1], Operator) and
-                               operator_stack[-1].operator_type() != '(' and
-                               self._should_pop_operator(operator_symbol, operator_stack[-1].operator_type())):
+                               operator_stack[-1].get_symbol() != '(' and
+                               self._should_pop_operator(operator_symbol, operator_stack[-1].get_symbol())):
                             output_queue.append(operator_stack.pop())
                         
                         operator_stack.append(token)
@@ -87,7 +89,7 @@ class PostfixConverter:
             # Pop remaining operators from stack
             while operator_stack:
                 top_operator = operator_stack.pop()
-                if isinstance(top_operator, Operator) and top_operator.operator_type() in ['(', ')']:
+                if isinstance(top_operator, Operator) and top_operator.get_symbol() in ['(', ')']:
                     raise InvalidPostfixException("Mismatched parentheses")
                 output_queue.append(top_operator)
                 
