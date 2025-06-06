@@ -1,12 +1,16 @@
-# ui/TerminalUI.py
+# ui/terminal_ui.py
+
 import os
 import re
+
+# 1. Add this import so that we can build a Coordinate object:
+from spreadsheet.coordinate import Coordinate
 
 from content.numerical_content import NumericContent
 from content.text_content      import TextContent
 from content.formula_content   import FormulaContent
-from fileio.load_file              import LoadFile
-from fileio.save_file              import SaveFile
+from fileio.load_file          import LoadFile
+from fileio.save_file          import SaveFile
 from spreadsheet.spreadsheet   import Spreadsheet
 from spreadsheet.cell          import Cell
 from exceptions                import (
@@ -91,7 +95,7 @@ class TerminalUI:
         try:
             column, row_num = self.parse_coordinate(cell_coord.upper())
 
-            # Elegimos el tipo de contenido según el texto ingresado
+            # 2. Build CellContent based on what the user typed:
             if cell_content.startswith('='):
                 content_obj = FormulaContent(cell_content)
             elif cell_content.isdigit():
@@ -99,8 +103,12 @@ class TerminalUI:
             else:
                 content_obj = TextContent(cell_content)
 
+            # 3. Create a Coordinate (not a raw tuple) to use as the dictionary key:
+            coord = Coordinate(column, row_num)
             new_cell = Cell((column, row_num), content_obj)
-            self.sheet.add_cell((column, row_num), new_cell)
+            #       ↓ pass the Coordinate instead of a tuple
+            self.sheet.add_cell(coord, new_cell)
+
             self.sheet.print_spreadsheet()
         except InvalidCellReferenceException as err:
             print(f"Error: {err}")
@@ -121,7 +129,6 @@ class TerminalUI:
             print(f"Error: {e}")
 
     def parse_coordinate(self, coord: str) -> tuple[str, int]:
-        import re
         match = re.match(r"^([A-Z]+)(\d+)$", coord)
         if match:
             column = match.group(1)
