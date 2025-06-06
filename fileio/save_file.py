@@ -1,5 +1,8 @@
+# fileio/save_file.py
+
 import os
 from spreadsheet.cell import Cell
+from spreadsheet.coordinate import Coordinate
 from exceptions import (
     InvalidFileNameException,
     InvalidFilePathException,
@@ -47,7 +50,9 @@ class SaveFile:
         file_name = self.prompt_for_file_name(file_extension)
         directory_path = self.prompt_for_directory()
 
-        max_row = max(sorted(set(int(key[1:]) for key in spreadsheet.cells.keys() if key[1:].isdigit())), default=0)
+        # ─── Use Coordinate.row instead of slicing a string ───
+        max_row = max((coord.row for coord in spreadsheet.cells.keys()), default=0)
+
         if file_name and directory_path:
             try:
                 self.validate_file_name(file_name)
@@ -55,13 +60,19 @@ class SaveFile:
 
                 letters = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
 
-                spreadsheet_data = [
-                    [
-                        str(spreadsheet.cells.get(f"{col}{row}", Cell()).content.get_value()).replace(";", ",") + ";"
-                        for col in letters
-                    ]
-                    for row in range(1, max_row + 1)
-                ]
+                # Build the 2D list of cell values
+                spreadsheet_data = []
+                for row in range(1, max_row + 1):
+                    row_list = []
+                    for col in letters:
+                        coord = Coordinate(col, row)
+                        cell = spreadsheet.cells.get(coord)
+                        if cell and cell.content is not None:
+                            value = cell.content.get_value(spreadsheet)
+                        else:
+                            value = ''
+                        row_list.append(str(value).replace(";", ",") + ";")
+                    spreadsheet_data.append(row_list)
 
                 self.save_spreadsheet_data(file_name, directory_path, spreadsheet_data)
                 self.display_save_confirmation()
