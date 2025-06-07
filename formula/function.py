@@ -19,11 +19,12 @@ class SUMA(Function):
 
 class MAX(Function):
     def evaluate(self, arguments: List[Any]) -> Any:
-        return max(arguments)
+        return max(arguments) if arguments else 0
+
 
 class MIN(Function):
     def evaluate(self, arguments: List[Any]) -> Any:
-        return min(arguments)
+        return min(arguments) if arguments else 0
 
 class PROMEDIO(Function):
     def evaluate(self, arguments: List[Any]) -> Any:

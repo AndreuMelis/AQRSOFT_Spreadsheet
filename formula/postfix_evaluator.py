@@ -1,3 +1,5 @@
+# formula/postfix_evaluator.py
+
 from .formula_element import FormulaElementVisitor, FormulaElement
 from .operand import Operand
 from .operator import Operator
@@ -7,15 +9,25 @@ from typing import List, Union
 
 class PostfixEvaluationVisitor(FormulaElementVisitor):
     """
-    Implementación de FormulaElementVisitor que evalúa una expresión en notación postfix.
-    Mantiene una pila interna de valores numéricos.
+    Implementation of FormulaElementVisitor that evaluates a postfix expression.
+    Maintains an internal stack of numeric values.
     """
-    
     def __init__(self, spreadsheet):
+        # Store Spreadsheet for any cell or range lookups
         self.spreadsheet = spreadsheet
         self.evaluation_stack: List[Union[int, float]] = []
-    
+
+    def visit_operand(self, operand: Operand):
+        """Push the operand's value onto the stack."""
+        # Try spreadsheet-aware first
+        try:
+            value = operand.get_value(self.spreadsheet)
+        except TypeError:
+            value = operand.get_value()
+        self.evaluation_stack.append(value)
+
     def visit_operator(self, operator: Operator):
+        """Pop two values, apply operator, push result."""
         if len(self.evaluation_stack) < 2:
             raise InvalidPostfixException(
                 f"Not enough operands for operator '{operator.get_symbol()}'"
@@ -24,39 +36,31 @@ class PostfixEvaluationVisitor(FormulaElementVisitor):
         left = self.evaluation_stack.pop()
         result = self._perform_operation(operator.get_symbol(), left, right)
         self.evaluation_stack.append(result)
-    
-    def visit_operand(self, operand: Operand):
-        """Procesa un operando empujando su valor en la pila."""
-        value = operand.get_value(self.spreadsheet)
-        self.evaluation_stack.append(value)
-    
+
     def visit_function(self, function_element: Function):
-        """Procesa una función evaluando sus argumentos y llamando a la función."""
+        """Evaluate function arguments then apply function."""
         try:
             argument_values: List[Union[int, float]] = []
             for arg in function_element.arguments:
                 if isinstance(arg, FunctionArgument):
-                    value = arg.get_value(function_element.spreadsheet)
-                    if isinstance(value, list):
-                        argument_values.extend(value)
+                    vals = arg.get_value(self.spreadsheet)
+                    if isinstance(vals, list):
+                        argument_values.extend(vals)
                     else:
-                        argument_values.append(value)
+                        argument_values.append(vals)
                 else:
                     argument_values.append(arg)
-
-            result = self._evaluate_function(function_element, argument_values)
+            result = function_element.evaluate(argument_values)
             self.evaluation_stack.append(result)
-
         except Exception as e:
-            raise EvaluationErrorException(f"Function evaluation failed: {str(e)}")
-    
+            raise EvaluationErrorException(f"Function evaluation failed: {e}")
+
     def _perform_operation(
         self,
         operator_symbol: str,
         left: Union[int, float],
         right: Union[int, float]
     ) -> Union[int, float]:
-        """Ejecuta la operación aritmética según el símbolo de operador."""
         if operator_symbol == '+':
             return left + right
         elif operator_symbol == '-':
@@ -69,46 +73,23 @@ class PostfixEvaluationVisitor(FormulaElementVisitor):
             return left / right
         else:
             raise EvaluationErrorException(f"Unsupported operator: {operator_symbol}")
-    
-    def _evaluate_function(
-        self,
-        function_instance: Function,
-        arguments: List[Union[int, float]]
-    ) -> Union[int, float]:
-        """Invoca `function_instance.evaluate` con los argumentos dados."""
-        try:
-            return function_instance.evaluate(arguments)
-        except Exception as e:
-            raise EvaluationErrorException(f"Function evaluation failed: {str(e)}")
-
 
 class PostfixExpressionEvaluator:
-    """Clase principal para evaluar una lista de elementos en orden postfix."""
-    
+    """Main class to evaluate a list of FormulaElement in postfix order."""
     def __init__(self, spreadsheet):
-        # Store the Spreadsheet so operands and functions can look up cells
         self.spreadsheet = spreadsheet
 
     def evaluate_postfix_expression(
         self,
         postfix_expression: List[FormulaElement],
     ) -> Union[int, float]:
-        """
-        Evalúa una expresión en postfix y devuelve el resultado numérico.
-        """
         if not postfix_expression:
             raise InvalidPostfixException("Empty postfix expression")
-        
-        # Pass the spreadsheet into the visitor so CellOperands and CellRangeArguments
-        # can resolve cell references correctly
         visitor = PostfixEvaluationVisitor(self.spreadsheet)
-        
         for element in postfix_expression:
             element.accept(visitor)
-        
         if len(visitor.evaluation_stack) != 1:
             raise InvalidPostfixException(
                 f"Invalid postfix expression: expected 1 result, got {len(visitor.evaluation_stack)}"
             )
-        
         return visitor.evaluation_stack[0]

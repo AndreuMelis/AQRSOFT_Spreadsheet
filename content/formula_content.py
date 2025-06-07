@@ -24,7 +24,7 @@ class FormulaContent(CellContent):
         if not self.validate_formula_format():
             raise ValueError("Invalid formula format: must start with '='")
 
-        raw_expression = self.formula[1:]
+        raw_expression = self.formula[1:].replace(',', ';')
 
         # Step 1: Tokenize into raw strings (e.g., ['A1', '+', '3'])
         tokens = self.tokenize(raw_expression)
@@ -75,7 +75,7 @@ class FormulaContent(CellContent):
         current_cell = spreadsheet.get_cell_name(self)
 
         # STEP 2 — Tokenize the formula and extract references
-        raw_expression = self.formula[1:]  # Remove the '='
+        raw_expression = self.formula[1:].replace(',', ';')  # Remove the '='
         tokens = self.tokenize(raw_expression)  # List of (kind, value) pairs
 
         # STEP 3 — Identify referenced cells (only tokens whose kind is 'CELL')

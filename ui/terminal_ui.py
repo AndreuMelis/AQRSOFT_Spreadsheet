@@ -3,9 +3,6 @@
 import os
 import re
 
-# 1. Add this import so that we can build a Coordinate object:
-from spreadsheet.coordinate import Coordinate
-
 from content.numerical_content import NumericContent
 from content.text_content      import TextContent
 from content.formula_content   import FormulaContent
@@ -13,6 +10,7 @@ from fileio.load_file          import LoadFile
 from fileio.save_file          import SaveFile
 from spreadsheet.spreadsheet   import Spreadsheet
 from spreadsheet.cell          import Cell
+from spreadsheet.coordinate    import Coordinate
 from exceptions                import (
     InvalidFileNameException,
     InvalidFilePathException,
@@ -52,6 +50,7 @@ class TerminalUI:
                 else:
                     print("Invalid command format. Use E <cell coordinate> <new cell content>")
             elif command.startswith("L"):
+                # Load sheet and populate into a Spreadsheet
                 self.load_spreadsheet(command.split(maxsplit=1)[1])
             elif command.startswith("S"):
                 self.save_spreadsheet(self.sheet)
@@ -61,7 +60,65 @@ class TerminalUI:
             else:
                 print("Invalid command. Please try again.")
 
-    def read_commands_from_file(self, file_path):
+    def load_spreadsheet(self, file_path: str):
+        try:
+            self.loader.validate_file_format(file_path)
+            raw_data = self.loader.load_spreadsheet_data(file_path)
+
+            # Build a fresh Spreadsheet from raw_data
+            new_sheet = Spreadsheet()
+            letters = [chr(i) for i in range(ord('A'), ord('Z')+1)]
+
+            for row_idx, row_values in enumerate(raw_data, start=1):
+                for col_idx, cell_text in enumerate(row_values):
+                    text = cell_text.rstrip(';').strip()
+                    if not text:
+                        continue
+                    coord = Coordinate(letters[col_idx], row_idx)
+                    if text.startswith('='):
+                        content_obj = FormulaContent(text)
+                    elif re.fullmatch(r'\d+(\.\d+)?', text):
+                        content_obj = NumericContent(float(text))
+                    else:
+                        content_obj = TextContent(text)
+                    new_sheet.add_cell(coord, Cell((letters[col_idx], row_idx), content_obj))
+
+            self.sheet = new_sheet
+            self.sheet.print_spreadsheet()
+            print("Spreadsheet loaded.")
+        except (InvalidFilePathException, InvalidFileNameException, FileNotFoundException) as e:
+            print(f"Error: {e}")
+
+    def save_spreadsheet(self, spreadsheet: Spreadsheet):
+        try:
+            self.saver.run_saver(spreadsheet)
+        except (InvalidFileNameException, InvalidFilePathException, FileNotFoundException) as e:
+            print(f"Error: {e}")
+
+    def create_new_spreadsheet(self):
+        self.sheet = Spreadsheet()
+        self.sheet.print_spreadsheet()
+        print("New spreadsheet created.")
+
+    def edit_cell(self, cell_coord: str, cell_content: str):
+        try:
+            column, row_num = self.parse_coordinate(cell_coord.upper())
+
+            if cell_content.startswith('='):
+                content_obj = FormulaContent(cell_content)
+            elif cell_content.isdigit():
+                content_obj = NumericContent(float(cell_content))
+            else:
+                content_obj = TextContent(cell_content)
+
+            coord = Coordinate(column, row_num)
+            new_cell = Cell((column, row_num), content_obj)
+            self.sheet.add_cell(coord, new_cell)
+            self.sheet.print_spreadsheet()
+        except InvalidCellReferenceException as err:
+            print(f"Error: {err}")
+
+    def read_commands_from_file(self, file_path: str):
         try:
             with open(file_path, 'r') as cmd_file:
                 for cmd_line in cmd_file:
@@ -70,7 +127,7 @@ class TerminalUI:
         except FileNotFoundError:
             print(f"Error: File not found: {file_path}")
 
-    def execute_command(self, cmd):
+    def execute_command(self, cmd: str):
         if cmd.startswith("C"):
             self.create_new_spreadsheet()
         elif cmd.startswith("E"):
@@ -85,48 +142,6 @@ class TerminalUI:
             self.save_spreadsheet(self.sheet)
         else:
             print("Invalid command in file. Skipping.")
-
-    def create_new_spreadsheet(self):
-        self.sheet = Spreadsheet()
-        self.sheet.print_spreadsheet()
-        print("New spreadsheet created.")
-
-    def edit_cell(self, cell_coord: str, cell_content: str):
-        try:
-            column, row_num = self.parse_coordinate(cell_coord.upper())
-
-            # 2. Build CellContent based on what the user typed:
-            if cell_content.startswith('='):
-                content_obj = FormulaContent(cell_content)
-            elif cell_content.isdigit():
-                content_obj = NumericContent(float(cell_content))
-            else:
-                content_obj = TextContent(cell_content)
-
-            # 3. Create a Coordinate (not a raw tuple) to use as the dictionary key:
-            coord = Coordinate(column, row_num)
-            new_cell = Cell((column, row_num), content_obj)
-            #       ↓ pass the Coordinate instead of a tuple
-            self.sheet.add_cell(coord, new_cell)
-
-            self.sheet.print_spreadsheet()
-        except InvalidCellReferenceException as err:
-            print(f"Error: {err}")
-
-    def load_spreadsheet(self, file_path: str):
-        try:
-            self.loader.validate_file_format(file_path)
-            spreadsheet_data = self.loader.load_spreadsheet_data(file_path)
-            self.loader.show.printContentSpreadsheet(spreadsheet_data)
-            print("Spreadsheet loaded.")
-        except (InvalidFilePathException, InvalidFileNameException, FileNotFoundException) as e:
-            print(f"Error: {e}")
-
-    def save_spreadsheet(self, spreadsheet: Spreadsheet):
-        try:
-            self.saver.run_saver(spreadsheet)
-        except (InvalidFileNameException, InvalidFilePathException, FileNotFoundException) as e:
-            print(f"Error: {e}")
 
     def parse_coordinate(self, coord: str) -> tuple[str, int]:
         match = re.match(r"^([A-Z]+)(\d+)$", coord)
