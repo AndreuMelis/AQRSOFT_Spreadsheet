@@ -39,7 +39,7 @@ class FormulaContent(CellContent):
         postfix_tokens = self.convert_to_postfix(typed_tokens)
 
         # Step 5: Evaluate postfix expression — now we resolve references using the spreadsheet
-        result = self.evaluate_postfix(postfix_tokens)
+        result = self.evaluate_postfix(postfix_tokens, spreadsheet)
 
         return result
 
@@ -97,16 +97,14 @@ class FormulaContent(CellContent):
         """
         Converts infix tokens to postfix using the PostfixConverter.
         """
-        converter = PostfixConverter()            # ← no arguments here
+        converter = PostfixConverter()            
         return converter.convert_to_postfix(tokens)
 
 
-    def evaluate_postfix(self, postfix_tokens):
-        """
-        Evaluates the postfix expression using PostfixExpressionEvaluator.
-        """
-        evaluator = PostfixExpressionEvaluator()                      # ← no arguments here
-        return evaluator.evaluate_postfix_expression(postfix_tokens)  # ← pass tokens into the method
+    def evaluate_postfix(self, postfix_tokens, spreadsheet):
+        evaluator = PostfixExpressionEvaluator(spreadsheet)
+        return evaluator.evaluate_postfix_expression(postfix_tokens)
+
 
 
     def __repr__(self):

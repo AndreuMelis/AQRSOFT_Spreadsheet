@@ -1,5 +1,3 @@
-# formula/postfix_evaluator.py
-
 from .formula_element import FormulaElementVisitor, FormulaElement
 from .operand import Operand
 from .operator import Operator
@@ -13,7 +11,8 @@ class PostfixEvaluationVisitor(FormulaElementVisitor):
     Mantiene una pila interna de valores numéricos.
     """
     
-    def __init__(self):
+    def __init__(self, spreadsheet):
+        self.spreadsheet = spreadsheet
         self.evaluation_stack: List[Union[int, float]] = []
     
     def visit_operator(self, operator: Operator):
@@ -28,7 +27,7 @@ class PostfixEvaluationVisitor(FormulaElementVisitor):
     
     def visit_operand(self, operand: Operand):
         """Procesa un operando empujando su valor en la pila."""
-        value = operand.get_value()
+        value = operand.get_value(self.spreadsheet)
         self.evaluation_stack.append(value)
     
     def visit_function(self, function_element: Function):
@@ -86,6 +85,10 @@ class PostfixEvaluationVisitor(FormulaElementVisitor):
 class PostfixExpressionEvaluator:
     """Clase principal para evaluar una lista de elementos en orden postfix."""
     
+    def __init__(self, spreadsheet):
+        # Store the Spreadsheet so operands and functions can look up cells
+        self.spreadsheet = spreadsheet
+
     def evaluate_postfix_expression(
         self,
         postfix_expression: List[FormulaElement],
@@ -96,7 +99,9 @@ class PostfixExpressionEvaluator:
         if not postfix_expression:
             raise InvalidPostfixException("Empty postfix expression")
         
-        visitor = PostfixEvaluationVisitor()
+        # Pass the spreadsheet into the visitor so CellOperands and CellRangeArguments
+        # can resolve cell references correctly
+        visitor = PostfixEvaluationVisitor(self.spreadsheet)
         
         for element in postfix_expression:
             element.accept(visitor)
