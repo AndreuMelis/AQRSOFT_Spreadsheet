@@ -15,7 +15,8 @@ from exceptions                import (
     InvalidFileNameException,
     InvalidFilePathException,
     FileNotFoundException,
-    InvalidCellReferenceException
+    InvalidCellReferenceException,
+    CircularDependencyException
 )
 
 class TerminalUI:
@@ -50,7 +51,6 @@ class TerminalUI:
                 else:
                     print("Invalid command format. Use E <cell coordinate> <new cell content>")
             elif command.startswith("L"):
-                # Load sheet and populate into a Spreadsheet
                 self.load_spreadsheet(command.split(maxsplit=1)[1])
             elif command.startswith("S"):
                 self.save_spreadsheet(self.sheet)
@@ -65,7 +65,6 @@ class TerminalUI:
             self.loader.validate_file_format(file_path)
             raw_data = self.loader.load_spreadsheet_data(file_path)
 
-            # Build a fresh Spreadsheet from raw_data
             new_sheet = Spreadsheet()
             letters = [chr(i) for i in range(ord('A'), ord('Z')+1)]
 
@@ -112,9 +111,20 @@ class TerminalUI:
                 content_obj = TextContent(cell_content)
 
             coord = Coordinate(column, row_num)
+            # Save previous cell if any for rollback
+            prev_cell = self.sheet.cells.get(coord)
             new_cell = Cell((column, row_num), content_obj)
             self.sheet.add_cell(coord, new_cell)
-            self.sheet.print_spreadsheet()
+
+            try:
+                self.sheet.print_spreadsheet()
+            except CircularDependencyException as e:
+                # Roll back to previous state
+                if prev_cell is not None:
+                    self.sheet.cells[coord] = prev_cell
+                else:
+                    self.sheet.cells.pop(coord, None)
+                print(f"Error: {e}")
         except InvalidCellReferenceException as err:
             print(f"Error: {err}")
 

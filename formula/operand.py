@@ -1,6 +1,4 @@
-# --------------------------------------------------------------------------------------------------
-# Archivo: formula/operand.py
-# --------------------------------------------------------------------------------------------------
+# formula/operand.py
 
 from abc import ABC, abstractmethod
 from typing import Union, Any, List, Dict, Type, TYPE_CHECKING
@@ -57,8 +55,13 @@ class CellOperand(Operand):
     def __init__(self, cell: Cell) -> None:
         self.cell = cell
 
-    def get_value(self) -> Union[int, float, str]:
-        return self.cell.get_value()
+    def get_value(self, spreadsheet: Spreadsheet = None) -> Union[int, float, str]:
+        """
+        Devuelve el valor de la celda; utiliza el spreadsheet provisto si existe.
+        """
+        # If a spreadsheet is provided, use it; else assume the cell knows its sheet
+        sheet = spreadsheet if spreadsheet is not None else getattr(self.cell, '_sheet', None)
+        return self.cell.get_value(sheet)
 
     @classmethod
     def create_from_token(cls, token_value, spreadsheet: Spreadsheet = None) -> "CellOperand":

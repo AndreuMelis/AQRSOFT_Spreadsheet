@@ -1,7 +1,7 @@
 # formula/postfix_evaluator.py
 
 from .formula_element import FormulaElementVisitor, FormulaElement
-from .operand import Operand
+from .operand import Operand, CellOperand, FunctionOperand
 from .operator import Operator
 from .function import Function, FunctionArgument
 from exceptions import InvalidPostfixException, EvaluationErrorException
@@ -19,10 +19,10 @@ class PostfixEvaluationVisitor(FormulaElementVisitor):
 
     def visit_operand(self, operand: Operand):
         """Push the operand's value onto the stack."""
-        # Try spreadsheet-aware first
-        try:
+        # CellOperand and nested functions need the spreadsheet; numeric ones do not
+        if isinstance(operand, (CellOperand, FunctionOperand)):
             value = operand.get_value(self.spreadsheet)
-        except TypeError:
+        else:
             value = operand.get_value()
         self.evaluation_stack.append(value)
 
