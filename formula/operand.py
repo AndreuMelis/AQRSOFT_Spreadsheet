@@ -1,6 +1,7 @@
 # formula/operand.py
 
 from abc import ABC, abstractmethod
+import re
 from typing import Union, Any, List, Dict, Type, TYPE_CHECKING
 
 # Importamos solo para type‐checking, no en ejecución
@@ -10,6 +11,7 @@ if TYPE_CHECKING:
     from .function import Function, FunctionArgument
 
 # Importamos el resto de dependencias externas
+from content.numerical_content import NumericContent
 from spreadsheet.cell import Cell
 from spreadsheet.coordinate import Coordinate
 from spreadsheet.spreadsheet import Spreadsheet
@@ -50,24 +52,51 @@ class NumericOperand(Operand):
 
 
 class CellOperand(Operand):
-    """Representa la referencia a una celda en el spreadsheet."""
+    """Represents a reference to a cell in the spreadsheet.
+    Missing cells are treated as zero, and never embed errors in the sheet."""
 
     def __init__(self, cell: Cell) -> None:
         self.cell = cell
 
-    def get_value(self, spreadsheet: Spreadsheet = None) -> Union[int, float, str]:
-        """
-        Devuelve el valor de la celda; utiliza el spreadsheet provisto si existe.
-        """
-        # If a spreadsheet is provided, use it; else assume the cell knows its sheet
-        sheet = spreadsheet if spreadsheet is not None else getattr(self.cell, '_sheet', None)
-        return self.cell.get_value(sheet)
+    def get_value(self, spreadsheet: "Spreadsheet" = None) -> Union[int, float]:
+        # figure out the right sheet
+        sheet = spreadsheet if spreadsheet is not None else getattr(self.cell, "_sheet", None)
+        if sheet is None:
+            return 0
+        # re-lookup the live cell (in case it was updated or rolled back)
+        coord = self.cell.coordinate
+        real = sheet.get_cell(coord)
+        if real is None or real.content is None:
+            return 0
+        try:
+            return real.content.get_value(sheet)
+        except Exception:
+            # on ANY error, treat as zero and do not modify sheet
+            return 0
 
     @classmethod
-    def create_from_token(cls, token_value, spreadsheet: Spreadsheet = None) -> "CellOperand":
+    def create_from_token(cls, token_value, spreadsheet: "Spreadsheet" = None) -> "CellOperand":
         if spreadsheet is None:
             raise ValueError("Spreadsheet is required to create CellOperand")
-        cell = Cell.from_token(token_value, spreadsheet)
+
+        tok = str(token_value).upper()
+        m = re.fullmatch(r"([A-Z]+)(\d+)", tok)
+        if not m:
+            raise ValueError(f"Invalid cell reference: {token_value}")
+        col, row = m.groups()
+        coord = Coordinate(col, int(row))
+
+        cell = spreadsheet.get_cell(coord)
+        if cell is None:
+           # coord is a Coordinate, but Cell wants a (col, row) tuple:
+            coord_tuple = (coord.column, coord.row)
+            placeholder = Cell(coord_tuple, NumericContent(0.0))
+            spreadsheet.add_cell(coord, placeholder)
+            cell = placeholder
+        else:
+            # ensure the cell knows its sheet too
+            setattr(cell, "_sheet", spreadsheet)
+
         return cls(cell)
 
 

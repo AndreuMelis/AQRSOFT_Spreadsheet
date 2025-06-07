@@ -14,21 +14,53 @@ class Function(ABC):
         pass
 
 class SUMA(Function):
+    """
+    Computes the sum of all arguments.
+    """
     def evaluate(self, arguments: List[Any]) -> Any:
-        return sum(arguments)
+        total = 0
+        for value in arguments:
+            total += value
+        return total
 
 class MAX(Function):
+    """
+    Returns the maximum value among arguments, or 0 if no arguments.
+    """
     def evaluate(self, arguments: List[Any]) -> Any:
-        return max(arguments) if arguments else 0
-
+        if not arguments:
+            return 0
+        max_val = arguments[0]
+        for value in arguments[1:]:
+            if value > max_val:
+                max_val = value
+        return max_val
 
 class MIN(Function):
+    """
+    Returns the minimum value among arguments, or 0 if no arguments.
+    """
     def evaluate(self, arguments: List[Any]) -> Any:
-        return min(arguments) if arguments else 0
+        if not arguments:
+            return 0
+        min_val = arguments[0]
+        for value in arguments[1:]:
+            if value < min_val:
+                min_val = value
+        return min_val
 
 class PROMEDIO(Function):
+    """
+    Returns the arithmetic mean of arguments, or 0 if no arguments.
+    """
     def evaluate(self, arguments: List[Any]) -> Any:
-        return sum(arguments) / len(arguments) if arguments else 0
+        count = 0
+        total = 0
+        for value in arguments:
+            total += value
+            count += 1
+        return total / count if count > 0 else 0
+
 
 
 # Function argument types

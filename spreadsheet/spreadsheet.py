@@ -42,32 +42,35 @@ class Spreadsheet:
         self.cells[coords] = cell
 
     def print_spreadsheet(self) -> None:
-        # Convert column letters to numeric index for proper ordering
-        def col_to_num(col: str) -> int:
-            num = 0
-            for c in col:
-                num = num * 26 + (ord(c) - ord('A') + 1)
-            return num
+        """
+        Render the current spreadsheet to the terminal, catching any evaluation
+        errors per-cell and displaying them inline without mutating state.
+        """
+        if not self.cells:
+            print("(empty spreadsheet)")
+            return
 
-        # Sort coordinates by row then column
-        sorted_coords = sorted(self.cells.keys(), key=lambda c: (c.row, col_to_num(c.column)))
+        # Determine all rows and columns present
+        sorted_coords = sorted(self.cells.keys(), key=lambda c: (c.row, c.column))
         rows = sorted({coord.row for coord in sorted_coords})
-        columns = sorted({coord.column for coord in sorted_coords}, key=lambda c: col_to_num(c))
+        columns = sorted({coord.column for coord in sorted_coords}, key=lambda col: [ord(c) for c in col])
 
         # Header
         print("\t" + "\t".join(columns))
-        # Rows
+
+        # Body
         for row in rows:
-            row_values = []
-            for column in columns:
-                coord = Coordinate(column, row)
-                if coord in self.cells:
-                    cell = self.get_cell(coord)
+            display_vals = []
+            for col in columns:
+                coord = Coordinate(col, row)
+                cell = self.cells.get(coord)
+                if cell:
                     try:
-                        value = cell.content.get_value(self)
+                        val = cell.content.get_value(self)
                     except Exception as e:
-                        value = f"Error: {e}"
-                    row_values.append(value)
+                        val = f"Error: {e}"
                 else:
-                    row_values.append('')
-            print(f"{row}\t" + "\t".join(str(v) for v in row_values))
+                    val = ''
+                display_vals.append(str(val))
+
+            print(f"{row}\t" + "\t".join(display_vals))

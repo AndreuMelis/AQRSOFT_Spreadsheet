@@ -108,27 +108,58 @@ class TerminalUI:
 
     def edit_cell(self, cell_coord: str, cell_content: str):
         try:
-            column, row_num = self.parse_coordinate(cell_coord.upper())
+            column, row_num = self.parse_coordinate(cell_coord)
+            coord = Coordinate(column, row_num)
+
+            # Build the new content object
             if cell_content.startswith('='):
                 content_obj = FormulaContent(cell_content)
-            elif cell_content.isdigit():
+            elif re.fullmatch(r"\d+(?:\.\d+)?", cell_content):
                 content_obj = NumericContent(float(cell_content))
             else:
                 content_obj = TextContent(cell_content)
-            coord = Coordinate(column, row_num)
+
+            # Backup the previous cell (if any)
             prev_cell = self.sheet.cells.get(coord)
-            self.sheet.add_cell(coord, Cell((column, row_num), content_obj))
+
+            # Create new cell
+            new_cell = Cell((column, row_num), content_obj)
+            
+            # Temporarily add the new cell to test for errors
+            self.sheet.add_cell(coord, new_cell)
+
+            # Try to evaluate the cell content to check for errors
             try:
+                if isinstance(content_obj, FormulaContent):
+                    # Test evaluation by getting the cell value
+                    # This will trigger any evaluation errors
+                    new_cell.content.get_value(self.sheet)
+                
+                # If we get here, no errors occurred - print the updated spreadsheet
                 self.sheet.print_spreadsheet()
-            except (CircularDependencyException, InvalidPostfixException, EvaluationErrorException, SyntaxErrorException, RecursionError) as e:
-                # rollback on error
+                
+            except (
+                CircularDependencyException,
+                InvalidPostfixException,
+                EvaluationErrorException,
+                SyntaxErrorException,
+                RecursionError
+            ) as e:
+                # Roll back the cell change
                 if prev_cell is not None:
                     self.sheet.cells[coord] = prev_cell
                 else:
                     self.sheet.cells.pop(coord, None)
+
+                # Print the error message
                 print(f"Error: {e}")
-        except InvalidCellReferenceException as err:
-            print(f"Error: {err}")
+                
+                # Print the spreadsheet in its previous state
+                self.sheet.print_spreadsheet()
+
+        except InvalidCellReferenceException as e:
+            print(f"Error: {e}")
+
 
     def read_commands_from_file(self, file_path: str):
         try:
