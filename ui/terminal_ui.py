@@ -1,22 +1,23 @@
-# ui/terminal_ui.py
-
 import os
 import re
 
 from content.numerical_content import NumericContent
-from content.text_content      import TextContent
-from content.formula_content   import FormulaContent
-from fileio.load_file          import LoadFile
-from fileio.save_file          import SaveFile
-from spreadsheet.spreadsheet   import Spreadsheet
-from spreadsheet.cell          import Cell
-from spreadsheet.coordinate    import Coordinate
-from exceptions                import (
+from content.text_content import TextContent
+from content.formula_content import FormulaContent
+from fileio.load_file import LoadFile
+from fileio.save_file import SaveFile
+from spreadsheet.spreadsheet import Spreadsheet
+from spreadsheet.cell import Cell
+from spreadsheet.coordinate import Coordinate
+from exceptions import (
     InvalidFileNameException,
     InvalidFilePathException,
     FileNotFoundException,
     InvalidCellReferenceException,
-    CircularDependencyException
+    CircularDependencyException,
+    InvalidPostfixException,
+    EvaluationErrorException,
+    SyntaxErrorException
 )
 
 class TerminalUI:
@@ -66,21 +67,27 @@ class TerminalUI:
             raw_data = self.loader.load_spreadsheet_data(file_path)
 
             new_sheet = Spreadsheet()
-            letters = [chr(i) for i in range(ord('A'), ord('Z')+1)]
+            def num_to_col(num: int) -> str:
+                col = ''
+                while num > 0:
+                    num, rem = divmod(num - 1, 26)
+                    col = chr(rem + ord('A')) + col
+                return col
 
             for row_idx, row_values in enumerate(raw_data, start=1):
                 for col_idx, cell_text in enumerate(row_values):
-                    text = cell_text.rstrip(';').strip()
+                    text = cell_text.strip().rstrip(';')
                     if not text:
                         continue
-                    coord = Coordinate(letters[col_idx], row_idx)
+                    col_letter = num_to_col(col_idx + 1)
+                    coord = Coordinate(col_letter, row_idx)
                     if text.startswith('='):
                         content_obj = FormulaContent(text)
                     elif re.fullmatch(r'\d+(\.\d+)?', text):
                         content_obj = NumericContent(float(text))
                     else:
                         content_obj = TextContent(text)
-                    new_sheet.add_cell(coord, Cell((letters[col_idx], row_idx), content_obj))
+                    new_sheet.add_cell(coord, Cell((col_letter, row_idx), content_obj))
 
             self.sheet = new_sheet
             self.sheet.print_spreadsheet()
@@ -102,24 +109,19 @@ class TerminalUI:
     def edit_cell(self, cell_coord: str, cell_content: str):
         try:
             column, row_num = self.parse_coordinate(cell_coord.upper())
-
             if cell_content.startswith('='):
                 content_obj = FormulaContent(cell_content)
             elif cell_content.isdigit():
                 content_obj = NumericContent(float(cell_content))
             else:
                 content_obj = TextContent(cell_content)
-
             coord = Coordinate(column, row_num)
-            # Save previous cell if any for rollback
             prev_cell = self.sheet.cells.get(coord)
-            new_cell = Cell((column, row_num), content_obj)
-            self.sheet.add_cell(coord, new_cell)
-
+            self.sheet.add_cell(coord, Cell((column, row_num), content_obj))
             try:
                 self.sheet.print_spreadsheet()
-            except CircularDependencyException as e:
-                # Roll back to previous state
+            except (CircularDependencyException, InvalidPostfixException, EvaluationErrorException, SyntaxErrorException, RecursionError) as e:
+                # rollback on error
                 if prev_cell is not None:
                     self.sheet.cells[coord] = prev_cell
                 else:
@@ -156,11 +158,8 @@ class TerminalUI:
     def parse_coordinate(self, coord: str) -> tuple[str, int]:
         match = re.match(r"^([A-Z]+)(\d+)$", coord)
         if match:
-            column = match.group(1)
-            row = int(match.group(2))
-            return column, row
-        else:
-            raise InvalidCellReferenceException(f"Invalid cell coordinate: {coord}")
+            return match.group(1), int(match.group(2))
+        raise InvalidCellReferenceException(f"Invalid cell coordinate: {coord}")
 
     def format_coordinate_for_display(self, coord: tuple[str, int]) -> str:
         column, row = coord
