@@ -6,18 +6,7 @@ from typing import Union, List, Tuple
 # Import concrete classes
 from formula.operand import Operand, NumericOperand, CellOperand, FunctionOperand
 from formula.operator import Operator, ArithmeticOperator, ParenthesisOperator
-from formula.function import FunctionArgument, CellArgument, CellRangeArgument, NumericArgument
-
-
-class FunctionArgumentWrapper(FunctionArgument):
-    """Wrapper to treat a FunctionOperand as a FunctionArgument for nested functions"""
-    
-    def __init__(self, function_operand: FunctionOperand):
-        self.function_operand = function_operand
-    
-    def get_value(self, spreadsheet=None):
-        return self.function_operand.get_value(spreadsheet)
-
+from formula.function import FunctionArgument, CellArgument, CellRangeArgument, NumericArgument, FunctionArgumentWrapper
 
 class Parser:
     """

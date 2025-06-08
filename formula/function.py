@@ -5,6 +5,7 @@ from content.number import Number
 from spreadsheet.cell_range import CellRange
 from spreadsheet.spreadsheet import Spreadsheet
 import re
+from formula.operand import FunctionOperand
 
 # Abstract base for all spreadsheet functions
 # TODO -> implement the function methods
@@ -124,6 +125,15 @@ class NumericArgument(FunctionArgument):
     
     def get_value(self) -> Number:
         return self.value.get_value()
+    
+class FunctionArgumentWrapper(FunctionArgument):
+    """Wrapper to treat a FunctionOperand as a FunctionArgument for nested functions"""
+    
+    def __init__(self, function_operand: FunctionOperand):
+        self.function_operand = function_operand
+    
+    def get_value(self):
+        return self.function_operand.get_value()
 
 class FunctionEvaluator:
     """
