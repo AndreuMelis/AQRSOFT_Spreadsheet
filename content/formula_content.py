@@ -102,6 +102,12 @@ class FormulaContent(CellContent):
         return evaluator.evaluate_postfix_expression(postfix_tokens)
 
 
-
+    def get_text(self) -> str:
+        """
+        Returns the formula as a string, excluding the leading '='.
+        """
+        return str(self.formula)
+    
+    
     def __repr__(self):
         return f"FormulaContent(formula='{self.formula}')"

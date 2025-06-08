@@ -9,13 +9,16 @@ from typing import Optional, Any, TYPE_CHECKING
 # Si se desea usar "Spreadsheet" como type hint sin que se importe en tiempo de ejecución:
 if TYPE_CHECKING:
     from .spreadsheet import Spreadsheet
+    from content.formula_content import FormulaContent
+    from content.numerical_content import NumericContent
+    from content.text_content import TextContent
 
 
 class Cell:
     def __init__(self, coordinate: tuple[str, int], content: CellContent | None = None):
         # coordinate viene como ("A", 1), por ejemplo
         self._coordinate = Coordinate(coordinate[0], coordinate[1])
-        self._content = content
+        self._content: FormulaContent | NumericContent | TextContent | None = content
 
     @property
     def coordinate(self) -> Coordinate:
@@ -29,16 +32,22 @@ class Cell:
     def content(self) -> CellContent | None:
         return self._content
     
-    @content.setter
+    @content.setter # not used, subsituted by get_value
     def content(self, content: CellContent) -> None:
         self._content = content
 
+    def get_textual_representation(self) -> str:
+        """
+        Devuelve la representación textual del contenido de la celda.
+        """
+        return self._content.get_text() if self.content else ""
+    
     def get_value(self, spreadsheet: Optional["Spreadsheet"] = None):
         """
         Devuelve el valor calculado por el content.
         Si el contenido es fórmula, puede necesitar 'spreadsheet' para resolver referencias.
         """
-        return self.content.get_value(spreadsheet)
+        return self._content.get_value(spreadsheet)
 
     @staticmethod
     def from_token(token_value: str, spreadsheet: "Spreadsheet" = None) -> "Cell":

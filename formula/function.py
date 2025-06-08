@@ -123,7 +123,7 @@ class NumericArgument(FunctionArgument):
         super().__init__()
         self.value: Number = Number(value)
     
-    def get_value(self) -> Number:
+    def get_value(self, spreadsheet: Spreadsheet = None) -> Number:
         return self.value.get_value()
     
 class FunctionArgumentWrapper(FunctionArgument):

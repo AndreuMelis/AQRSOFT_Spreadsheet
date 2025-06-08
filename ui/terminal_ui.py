@@ -27,13 +27,16 @@ class TerminalUI:
         self.saver = SaveFile()
 
     def display_menu(self):
-        print("\033[33m\n--- Spreadsheet Menu ---\033[0m")
-        print("\033[36mRF <text file pathname> - Read commands from File\033[0m")
-        print("\033[36mC - Create a New Spreadsheet\033[0m")
-        print("\033[36mE <cell coordinate> <new cell content> - Edit a cell\033[0m")
-        print("\033[36mL <SV2 file pathname> - Load a Spreadsheet from a file\033[0m")
-        print("\033[36mS <SV2 file pathname> - Save the Spreadsheet to a file\033[0m")
-        print("\033[31mX - Exit\033[0m")
+        print("\033[1;4;36m\n====== SPREADSHEET MENU ======\033[0m")
+        print("\033[1;33m[File]\033[0m")
+        print("  \033[1;36mRF <text file pathname>\033[0m  - \033[3mRead commands from file\033[0m")
+        print("  \033[1;36mL  <SV2 file pathname>\033[0m   - \033[3mLoad spreadsheet from file\033[0m")
+        print("  \033[1;36mS  <SV2 file pathname>\033[0m   - \033[3mSave spreadsheet to file\033[0m")
+        print("\033[1;33m[Edit]\033[0m")
+        print("  \033[1;32mC\033[0m                      - \033[3mCreate a new spreadsheet\033[0m")
+        print("  \033[1;32mE <cell> <content>\033[0m      - \033[3mEdit a cell\033[0m")
+        print("\033[1;31mX\033[0m                      - \033[1mExit\033[0m")
+        print("\033[1;4;36m==============================\033[0m")
 
     def run(self):
         while True:

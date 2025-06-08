@@ -3,6 +3,7 @@
 import os
 from spreadsheet.cell import Cell
 from spreadsheet.coordinate import Coordinate
+from spreadsheet.spreadsheet import Spreadsheet
 from exceptions import (
     InvalidFileNameException,
     InvalidFilePathException,
@@ -47,7 +48,7 @@ class SaveFile:
     def display_save_confirmation(self):
         print("File saved successfully.")
 
-    def run_saver(self, spreadsheet):
+    def run_saver(self, spreadsheet: Spreadsheet):
         file_extension = ".s2v"
         file_name = self.prompt_for_file_name(file_extension)
         directory_path = self.prompt_for_directory()
@@ -71,7 +72,7 @@ class SaveFile:
                         coord = Coordinate(col, row)
                         cell = spreadsheet.cells.get(coord)
                         if cell and cell.content is not None:
-                            value = cell.content.get_value(spreadsheet)
+                            value = cell.get_textual_representation()
                             cell_str = str(value).replace(";", ",")
                         else:
                             cell_str = ''
