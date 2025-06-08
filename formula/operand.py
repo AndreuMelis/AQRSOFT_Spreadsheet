@@ -85,14 +85,13 @@ class CellOperand(Operand):
         if not m:
             raise ValueError(f"Invalid cell reference: {token_value}")
         col, row = m.groups()
-        coord = Coordinate(col, int(row))
 
-        cell = spreadsheet.get_cell(coord)
+        cell = spreadsheet.get_cell(Coordinate(col, int(row)))
         if cell is None:
            # coord is a Coordinate, but Cell wants a (col, row) tuple:
-            coord_tuple = (coord.column, coord.row)
+            coord_tuple = (col, row)
             placeholder = Cell(coord_tuple, NumericContent(0.0))
-            spreadsheet.add_cell(coord, placeholder)
+            spreadsheet.add_cell(Coordinate(col, int(row)), placeholder)
             cell = placeholder
         else:
             # ensure the cell knows its sheet too
@@ -108,10 +107,10 @@ class FunctionOperand(Operand):
         self.function: "Function" = func
         self.arguments: List["FunctionArgument"] = arguments or []
 
-    def get_value(self) -> Union[int, float]:
+    def get_value(self, spreadsheet: Spreadsheet) -> Union[int, float]:
         values: List[Union[int, float]] = []
         for arg in self.arguments:
-            v = arg.get_value()
+            v = arg.get_value(spreadsheet)
             if isinstance(v, list):
                 values.extend(v)
             else:

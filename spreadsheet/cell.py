@@ -33,7 +33,7 @@ class Cell:
     def content(self, content: CellContent) -> None:
         self._content = content
 
-    def get_value(self, spreadsheet: Optional["Spreadsheet"] = None) -> Any:
+    def get_value(self, spreadsheet: Optional["Spreadsheet"] = None):
         """
         Devuelve el valor calculado por el content.
         Si el contenido es fórmula, puede necesitar 'spreadsheet' para resolver referencias.

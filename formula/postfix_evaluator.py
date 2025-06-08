@@ -19,8 +19,8 @@ class PostfixEvaluationVisitor(FormulaElementVisitor):
 
     def visit_operand(self, operand: Operand):
         """Push the operand's value onto the stack."""
-        # CellOperand need the spreadsheet; numeric ones do not
-        if isinstance(operand, (CellOperand)):
+        # CellOperand and FunctionOperand need the spreadsheet; numeric ones do not
+        if isinstance(operand, (CellOperand, FunctionOperand)):
             value = operand.get_value(self.spreadsheet)
         else:
             value = operand.get_value()

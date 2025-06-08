@@ -75,11 +75,11 @@ class CellArgument(FunctionArgument):
     def __init__(self, cell: Cell) -> None:
         self.cell = cell
 
-    def get_value(self): 
+    def get_value(self, spreadsheet: Spreadsheet): 
         """ 
         Spreadsheet needed to match with CellRangeArgument get_values()
         """
-        return self.cell.get_value()
+        return self.cell.get_value(spreadsheet)
     
     @classmethod
     def create_from_token(cls, token_value, spreadsheet: Spreadsheet = None) -> 'CellArgument':
@@ -113,10 +113,10 @@ class CellRangeArgument(FunctionArgument):
         self.cell_range: CellRange = CellRange(origin, destination)
         self.cells: List[Cell] = self.cell_range.get_values(spreadsheet)
     
-    def get_value(self) -> List:
+    def get_value(self, spreadsheet: Spreadsheet) -> List:
         """
         Returns a list of values for all cells in the range."""
-        return [cell.get_value() for cell in self.cells]
+        return [cell.get_value(spreadsheet) for cell in self.cells]
 
 class NumericArgument(FunctionArgument):
     def __init__(self, value: Union[int, float]) -> None:
@@ -132,8 +132,8 @@ class FunctionArgumentWrapper(FunctionArgument):
     def __init__(self, function_operand: FunctionOperand):
         self.function_operand = function_operand
     
-    def get_value(self):
-        return self.function_operand.get_value()
+    def get_value(self, spreadsheet: Spreadsheet):
+        return self.function_operand.get_value(spreadsheet)
 
 class FunctionEvaluator:
     """
