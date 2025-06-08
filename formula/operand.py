@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 import re
-from typing import Union, Any, List, Dict, Type, TYPE_CHECKING
+from typing import Union, Any, List, Dict, Type, TYPE_CHECKING, Optional
 
 # Importamos solo para type‐checking, no en ejecución
 if TYPE_CHECKING:
@@ -22,7 +22,7 @@ class Operand(ABC):
     """Clase base para operandos (números, referencias a celdas, funciones)."""
 
     @abstractmethod
-    def get_value(self) -> Union[int, float]:
+    def get_value(self, spreadsheet: Optional[Spreadsheet]) -> Union[int, float]:
         pass
 
     def accept(self, visitor: "FormulaElementVisitor") -> Any:

@@ -68,7 +68,7 @@ class PROMEDIO(Function):
 class FunctionArgument(ABC):
     """Base class for function arguments"""
     @abstractmethod
-    def get_value(self):
+    def get_value(self, spreadsheet: Optional[Spreadsheet]):
         pass
     
 class CellArgument(FunctionArgument):
