@@ -1,7 +1,7 @@
 # formula/postfix_evaluator.py
 
 from .formula_element import FormulaElementVisitor, FormulaElement
-from .operand import Operand, CellOperand, FunctionOperand
+from .operand import Operand, CellOperand, FunctionOperand, NumericOperand
 from .operator import Operator
 from .function import Function, FunctionArgument
 from exceptions import InvalidPostfixException, EvaluationErrorException
@@ -20,7 +20,7 @@ class PostfixEvaluationVisitor(FormulaElementVisitor):
     def visit_operand(self, operand: Operand):
         """Push the operand's value onto the stack."""
         # CellOperand and nested functions need the spreadsheet; numeric ones do not
-        if isinstance(operand, (CellOperand, FunctionOperand)):
+        if isinstance(operand, (CellOperand)):
             value = operand.get_value(self.spreadsheet)
         else:
             value = operand.get_value()
@@ -36,24 +36,6 @@ class PostfixEvaluationVisitor(FormulaElementVisitor):
         left = self.evaluation_stack.pop()
         result = self._perform_operation(operator.get_symbol(), left, right)
         self.evaluation_stack.append(result)
-
-    def visit_function(self, function_element: Function):
-        """Evaluate function arguments then apply function."""
-        try:
-            argument_values: List[Union[int, float]] = []
-            for arg in function_element.arguments:
-                if isinstance(arg, FunctionArgument):
-                    vals = arg.get_value(self.spreadsheet)
-                    if isinstance(vals, list):
-                        argument_values.extend(vals)
-                    else:
-                        argument_values.append(vals)
-                else:
-                    argument_values.append(arg)
-            result = function_element.evaluate(argument_values)
-            self.evaluation_stack.append(result)
-        except Exception as e:
-            raise EvaluationErrorException(f"Function evaluation failed: {e}")
 
     def _perform_operation(
         self,

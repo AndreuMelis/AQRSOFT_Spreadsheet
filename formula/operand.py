@@ -60,19 +60,20 @@ class CellOperand(Operand):
 
     def get_value(self, spreadsheet: "Spreadsheet" = None) -> Union[int, float]:
         # figure out the right sheet
-        sheet = spreadsheet if spreadsheet is not None else getattr(self.cell, "_sheet", None)
-        if sheet is None:
-            return 0
-        # re-lookup the live cell (in case it was updated or rolled back)
-        coord = self.cell.coordinate
-        real = sheet.get_cell(coord)
-        if real is None or real.content is None:
-            return 0
-        try:
-            return real.content.get_value(sheet)
-        except Exception:
-            # on ANY error, treat as zero and do not modify sheet
-            return 0
+        # sheet = spreadsheet if spreadsheet is not None else getattr(self.cell, "_sheet", None)
+        # if sheet is None:
+        #     return 0
+        # # re-lookup the live cell (in case it was updated or rolled back)
+        # coord = self.cell.coordinate
+        # real = sheet.get_cell(coord)
+        # if real is None or real.content is None:
+        #     return 0
+        # try:
+        #     return real.content.get_value(sheet)
+        # except Exception:
+        #     # on ANY error, treat as zero and do not modify sheet
+        #     return 0
+        return self.cell.content.get_value(spreadsheet)
 
     @classmethod
     def create_from_token(cls, token_value, spreadsheet: "Spreadsheet" = None) -> "CellOperand":
@@ -107,10 +108,10 @@ class FunctionOperand(Operand):
         self.function: "Function" = func
         self.arguments: List["FunctionArgument"] = arguments or []
 
-    def get_value(self, spreadsheet: Spreadsheet = None) -> Union[int, float]:
+    def get_value(self) -> Union[int, float]:
         values: List[Union[int, float]] = []
         for arg in self.arguments:
-            v = arg.get_value(spreadsheet)
+            v = arg.get_value()
             if isinstance(v, list):
                 values.extend(v)
             else:

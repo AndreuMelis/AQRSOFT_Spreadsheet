@@ -67,14 +67,14 @@ class PROMEDIO(Function):
 class FunctionArgument(ABC):
     """Base class for function arguments"""
     @abstractmethod
-    def get_value(self, spreadsheet = None):
+    def get_value(self):
         pass
     
 class CellArgument(FunctionArgument):
     def __init__(self, cell: Cell) -> None:
         self.cell = cell
 
-    def get_value(self, spreadsheet = None): 
+    def get_value(self): 
         """ 
         Spreadsheet needed to match with CellRangeArgument get_values()
         """
@@ -86,31 +86,43 @@ class CellArgument(FunctionArgument):
         cell = Cell.from_token(token_value, spreadsheet)
         return cls(cell)
 
-class CellRangeArgument(FunctionArgument):
-    def __init__(self, start_ref: str, end_ref: str):
-        self.start_ref = start_ref.upper()
-        self.end_ref   = end_ref.upper()
+# class CellRangeArgument(FunctionArgument):
+#     def __init__(self, start_ref: str, end_ref: str):
+#         self.start_ref = start_ref.upper()
+#         self.end_ref   = end_ref.upper()
 
-    def get_value(self, spreadsheet):
+#     def get_value(self, spreadsheet):
+#         """
+#         Return a list of numbers corresponding to the cells in the range.
+#         E.g. 'A1:A3' → [ value(A1), value(A2), value(A3) ].
+#         """
+#         # Use your CellRange class to get the Cell objects in that rectangle
+#         cell_objs = CellRange(self.start_ref, self.end_ref).get_values(spreadsheet)
+#         # Extract each cell’s computed value
+#         return [
+#             cell.content.get_value(spreadsheet)
+#             for cell in cell_objs
+#             if cell and cell.content is not None
+#         ]
+class CellRangeArgument(FunctionArgument):
+    """
+    Returns teh values of all the cells inside the range
+    """
+    def __init__(self, origin: str, destination: str, spreadsheet: Spreadsheet) -> None:
+        self.cell_range: CellRange = CellRange(origin, destination)
+        self.cells: List[Cell] = self.cell_range.get_values(spreadsheet)
+    
+    def get_value(self) -> List:
         """
-        Return a list of numbers corresponding to the cells in the range.
-        E.g. 'A1:A3' → [ value(A1), value(A2), value(A3) ].
-        """
-        # Use your CellRange class to get the Cell objects in that rectangle
-        cell_objs = CellRange(self.start_ref, self.end_ref).get_values(spreadsheet)
-        # Extract each cell’s computed value
-        return [
-            cell.content.get_value(spreadsheet)
-            for cell in cell_objs
-            if cell and cell.content is not None
-        ]
+        Returns a list of values for all cells in the range."""
+        return [cell.get_value() for cell in self.cells]
 
 class NumericArgument(FunctionArgument):
     def __init__(self, value: Union[int, float]) -> None:
         super().__init__()
         self.value: Number = Number(value)
     
-    def get_value(self, spreadsheet = None) -> Number:
+    def get_value(self) -> Number:
         return self.value.get_value()
 
 class FunctionEvaluator:

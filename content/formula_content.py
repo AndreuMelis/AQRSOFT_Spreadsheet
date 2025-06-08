@@ -29,11 +29,11 @@ class FormulaContent(CellContent):
         # Step 1: Tokenize into raw strings (e.g., ['A1', '+', '3'])
         tokens = self.tokenize(raw_expression)
 
-        # Step 2: Parse into typed tokens (Operator, Operand, Reference, etc.)
-        typed_tokens = self.parse_tokens(tokens, spreadsheet)
+        # Step 2: Check for circular dependencies — we pass spreadsheet to trace references
+        self.check_circular_dependencies(spreadsheet, tokens)
 
-        # Step 3: Check for circular dependencies — we pass spreadsheet to trace references
-        self.check_circular_dependencies(spreadsheet)
+        # Step 3: Parse into typed tokens (Operator, Operand, Reference, etc.)
+        typed_tokens = self.parse_tokens(tokens, spreadsheet)
 
         # Step 4: Convert to postfix for evaluation
         postfix_tokens = self.convert_to_postfix(typed_tokens)
@@ -66,7 +66,7 @@ class FormulaContent(CellContent):
         return parser.parse_tokens(spreadsheet)
 
 
-    def check_circular_dependencies(self, spreadsheet: Spreadsheet):
+    def check_circular_dependencies(self, spreadsheet: Spreadsheet, tokens: list):
         """
         Extracts the current cell and all referenced cells from the formula,
         and checks for circular dependencies.
@@ -74,11 +74,7 @@ class FormulaContent(CellContent):
         # STEP 1 — Get the name of the current cell this formula is part of
         current_cell = spreadsheet.get_cell_name(self)
 
-        # STEP 2 — Tokenize the formula and extract references
-        raw_expression = self.formula[1:].replace(',', ';')  # Remove the '='
-        tokens = self.tokenize(raw_expression)  # List of (kind, value) pairs
-
-        # STEP 3 — Identify referenced cells (only tokens whose kind is 'CELL')
+        # Identify referenced cells (only tokens whose kind is 'CELL')
         referenced_cells = {
             value.upper()
             for (kind, value) in tokens

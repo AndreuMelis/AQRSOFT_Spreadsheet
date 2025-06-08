@@ -18,11 +18,6 @@ class FormulaElementVisitor(ABC):
     def visit_operator(self, operator: "Operator") -> None:
         pass
 
-    @abstractmethod
-    def visit_function(self, function: "Function") -> None:
-        pass
-
-
 class FormulaElement(ABC):
     """Clase base para todos los elementos de una expresión postfix (operandos, operadores, funciones)."""
 
