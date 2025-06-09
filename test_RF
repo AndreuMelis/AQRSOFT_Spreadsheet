@@ -1,0 +1,6 @@
+E A1 =2*3
+E A2 =4
+E A3 2
+E A4 =SUMA(A1:A3)
+E B2 Hola
+S
