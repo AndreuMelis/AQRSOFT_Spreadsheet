@@ -12,18 +12,12 @@ class PostfixEvaluationVisitor(FormulaElementVisitor):
     Implementation of FormulaElementVisitor that evaluates a postfix expression.
     Maintains an internal stack of numeric values.
     """
-    def __init__(self, spreadsheet):
-        # Store Spreadsheet for any cell or range lookups
-        self.spreadsheet = spreadsheet
+    def __init__(self):
         self.evaluation_stack: List[Union[int, float]] = []
 
     def visit_operand(self, operand: Operand):
         """Push the operand's value onto the stack."""
-        # CellOperand and FunctionOperand need the spreadsheet; numeric ones do not
-        if isinstance(operand, (CellOperand, FunctionOperand)):
-            value = operand.get_value(self.spreadsheet)
-        else:
-            value = operand.get_value()
+        value = operand.get_value()
         self.evaluation_stack.append(value)
 
     def visit_operator(self, operator: Operator):
@@ -58,16 +52,15 @@ class PostfixEvaluationVisitor(FormulaElementVisitor):
 
 class PostfixExpressionEvaluator:
     """Main class to evaluate a list of FormulaElement in postfix order."""
-    def __init__(self, spreadsheet):
-        self.spreadsheet = spreadsheet
-
+    def __init__(self):
+        pass
     def evaluate_postfix_expression(
         self,
         postfix_expression: List[FormulaElement],
     ) -> Union[int, float]:
         if not postfix_expression:
             raise InvalidPostfixException("Empty postfix expression")
-        visitor = PostfixEvaluationVisitor(self.spreadsheet)
+        visitor = PostfixEvaluationVisitor()
         for element in postfix_expression:
             element.accept(visitor)
         if len(visitor.evaluation_stack) != 1:

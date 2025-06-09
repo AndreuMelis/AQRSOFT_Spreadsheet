@@ -19,7 +19,7 @@ class TextContent(CellContent):
     def get_text(self) -> str:
         return self.text
 
-    def get_value(self, spreadsheet):
+    def get_value(self):
         return self.text
 
     # Mutador

@@ -1,5 +1,5 @@
 from content.cell_content import CellContent
-from typing import List
+from typing import List, Optional
 from abc import ABC, abstractmethod
 from formula.tokenizer   import Tokenizer
 from formula.parser      import Parser
@@ -12,6 +12,7 @@ from formula.postfix_converter import PostfixConverter
 from spreadsheet.dependency_manager import DependencyManager
 from spreadsheet.spreadsheet import Spreadsheet
 from spreadsheet.dependency_manager import DependencyManager
+import re
 
 class FormulaContent(CellContent):
     def __init__(self, formula: str) -> None:
@@ -19,8 +20,21 @@ class FormulaContent(CellContent):
         self.formula: str = formula
         self.operands: List['Operand'] = []
         self.operators: List['Operator'] = []
+        
+        # Simple caching: store the computed value
+        self._computed_value: Optional[float] = None
 
-    def get_value(self, spreadsheet: Spreadsheet, current_cell_name: str = None) -> float:
+    def get_value(self, spreadsheet: Optional[Spreadsheet], current_cell_name: str = None) -> float:
+        # If we already have a computed value, return it
+        if self._computed_value is not None:
+            return self._computed_value
+            
+        # Otherwise, compute and store the value
+        self._computed_value = self._compute_value(spreadsheet, current_cell_name)
+        return self._computed_value
+
+    def _compute_value(self, spreadsheet: Spreadsheet, current_cell_name: str = None) -> float:
+        """Internal method that actually computes the formula value"""
         if not self.validate_formula_format():
             raise ValueError("Invalid formula format: must start with '='")
 
@@ -40,11 +54,17 @@ class FormulaContent(CellContent):
         postfix_tokens = self.convert_to_postfix(typed_tokens)
 
         # Step 5: Evaluate postfix expression
-        result = self.evaluate_postfix(postfix_tokens, spreadsheet)
+        result = self.evaluate_postfix(postfix_tokens)
 
         return result
 
+    def invalidate_value(self):
+        """Mark the stored value as invalid, forcing recomputation on next access"""
+        self._computed_value = None
 
+    def has_computed_value(self) -> bool:
+        """Check if this formula has a stored computed value"""
+        return self._computed_value is not None
 
     def validate_formula_format(self) -> bool:
         """
@@ -56,7 +76,6 @@ class FormulaContent(CellContent):
         """
         Tokenizes the input expression using the Tokenizer class.
         """
-        # ← One‐line change here: call tokenize on an instance, not on the class
         return Tokenizer().tokenize(expression)
     
     def parse_tokens(self, tokens: list, spreadsheet: Spreadsheet):
@@ -65,7 +84,6 @@ class FormulaContent(CellContent):
         """
         parser = Parser(tokens)
         return parser.parse_tokens(spreadsheet)
-
 
     def check_circular_dependencies(self, spreadsheet: Spreadsheet, tokens: list, current_cell_name: str = None):
         """
@@ -84,11 +102,8 @@ class FormulaContent(CellContent):
             current_cell = current_cell_name
 
         # Identify referenced cells (only tokens whose kind is 'CELL')
-        referenced_cells = {
-            value.upper()
-            for (kind, value) in tokens
-            if kind == 'CELL' and spreadsheet.is_valid_cell_reference(value)
-        }
+        referenced_cells = set(self.get_referenced_cells())
+
 
         # STEP 4 — Use DependencyManager to detect cycles
         dependency_manager = spreadsheet.get_dependency_manager()
@@ -97,6 +112,31 @@ class FormulaContent(CellContent):
         # STEP 5 — If all is good, update the graph
         dependency_manager.update_dependencies(current_cell, referenced_cells)
 
+    def get_referenced_cells(self) -> list:
+        """
+        Returns a list of all cell names referenced in the formula,
+        expanding ranges like A6:A10 to ['A6', 'A7', 'A8', 'A9', 'A10'].
+        """
+        if not self.validate_formula_format():
+            return []
+
+        expr = self.formula[1:].replace(',', ';')
+        refs = set()
+
+        # Expand ranges like A6:A10
+        for match in re.finditer(r'([A-Z]+)(\d+):([A-Z]+)(\d+)', expr):
+            col1, row1, col2, row2 = match.groups()
+            if col1 == col2:
+                for row in range(int(row1), int(row2) + 1):
+                    refs.add(f"{col1}{row}")
+            # (If you want to support multi-column ranges, add logic here)
+
+        # Find all single cell references not part of a range
+        for match in re.finditer(r'([A-Z]+)(\d+)', expr):
+            cell = match.group(0)
+            refs.add(cell)
+
+        return list(refs)
 
     def convert_to_postfix(self, tokens):
         """
@@ -105,11 +145,9 @@ class FormulaContent(CellContent):
         converter = PostfixConverter()            
         return converter.convert_to_postfix(tokens)
 
-
-    def evaluate_postfix(self, postfix_tokens, spreadsheet):
-        evaluator = PostfixExpressionEvaluator(spreadsheet)
+    def evaluate_postfix(self, postfix_tokens):
+        evaluator = PostfixExpressionEvaluator()
         return evaluator.evaluate_postfix_expression(postfix_tokens)
-
 
     def get_text(self) -> str:
         """
@@ -117,6 +155,6 @@ class FormulaContent(CellContent):
         """
         return str(self.formula)
     
-    
     def __repr__(self):
-        return f"FormulaContent(formula='{self.formula}')"
+        computed_status = "computed" if self._computed_value is not None else "not computed"
+        return f"FormulaContent(formula='{self.formula}', {computed_status})"

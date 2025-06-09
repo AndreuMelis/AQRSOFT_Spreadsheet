@@ -39,7 +39,57 @@ class Spreadsheet:
         return self._dep_manager
 
     def add_cell(self, coords: Coordinate, cell: Cell) -> None:
-        self.cells[cell.coordinate] = cell
+        """Add a cell and invalidate dependent formulas"""
+        cell_name = f"{coords.column}{coords.row}"
+        
+        # Add the new cell
+        self.cells[coords] = cell
+        
+        # Invalidate any formulas that reference this cell
+        self._invalidate_dependent_formulas(cell_name)
+
+    def _invalidate_dependent_formulas(self, changed_cell_name: str):
+        """
+        Find all formulas that reference the changed cell and invalidate their computed values.
+        This forces them to recalculate when next accessed.
+        """
+        dependency_manager = self.get_dependency_manager()
+        
+        # Get all cells that depend on the changed cell
+        dependent_cells = []
+        for cell_name, dependencies in dependency_manager.dependency_graph.items():
+            if changed_cell_name in dependencies:
+                dependent_cells.append(cell_name)
+        
+        # Invalidate all dependent formulas (transitively)
+        visited = set()
+        to_invalidate = dependent_cells[:]
+        
+        while to_invalidate:
+            cell_name = to_invalidate.pop(0)
+            if cell_name in visited:
+                continue
+                
+            visited.add(cell_name)
+            
+            # Find the actual cell and invalidate it if it's a formula
+            for coord, cell in self.cells.items():
+                if f"{coord.column}{coord.row}" == cell_name:
+                    if hasattr(cell.content, 'invalidate_value'):
+                        cell.content.invalidate_value()
+                        
+                        # Add cells that depend on this cell to the invalidation queue
+                        for other_cell, other_deps in dependency_manager.dependency_graph.items():
+                            if cell_name in other_deps and other_cell not in visited:
+                                to_invalidate.append(other_cell)
+                    break
+
+    def set_cell_content(self, coords: Coordinate, content):
+        """Convenience method to set cell content"""
+        from spreadsheet.cell import Cell
+        
+        cell = Cell(coords, content)
+        self.add_cell(coords, cell)
 
     def print_spreadsheet(self) -> None:
         """
@@ -66,7 +116,7 @@ class Spreadsheet:
                 cell = self.cells.get(coord)
                 if cell:
                     try:
-                        val = cell.content.get_value(self)
+                        val = cell.get_value(self)
                     except Exception as e:
                         val = f"Error: {e}"
                 else:

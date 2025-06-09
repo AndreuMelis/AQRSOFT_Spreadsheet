@@ -16,7 +16,7 @@ class NumericContent(CellContent):
     def get_text(self) -> str:
         return str(self.number)
 
-    def get_value(self, spreadsheet):  # spreadsheet no se usa, pero mantiene la firma
+    def get_value(self):  # spreadsheet no se usa, pero mantiene la firma
         return self.get_number()
 
     # Setter opcional
