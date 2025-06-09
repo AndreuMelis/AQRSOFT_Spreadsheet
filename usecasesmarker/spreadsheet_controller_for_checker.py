@@ -48,6 +48,13 @@ class ISpreadsheetControllerForChecker:
         if content.startswith('='):
             # Keep the leading '=' so FormulaContent.validate_formula_format() passes
             cell_content = FormulaContent(content)
+            
+            # For formulas, check circular dependencies BEFORE adding the cell
+            # This must happen before the cell is added to prevent circular references
+            raw_expression = content[1:].replace(',', ';')
+            tokens = cell_content.tokenize(raw_expression)
+            cell_content.check_circular_dependencies(self.spreadsheet, tokens, coord.upper())
+                    
         elif re.fullmatch(r"\d+(?:\.\d+)?", content):
             cell_content = NumericContent(float(content))
         else:
@@ -82,7 +89,7 @@ class ISpreadsheetControllerForChecker:
     def get_cell_content_as_string(self, coord: str) -> str:
         """
         Retrieves the content of a cell as a string.
-        Raises BadCoordinateException if the cell does not exist.
+        Returns empty string if the cell does not exist (instead of throwing exception).
         """
         m = re.fullmatch(r"([A-Z]+)(\d+)", coord)
         if not m:
@@ -93,9 +100,11 @@ class ISpreadsheetControllerForChecker:
         coordinate = Coordinate(col, row)
         cell = self.spreadsheet.get_cell(coordinate)
         if not cell:
-            raise ex.BadCoordinateException(f"Cell not found: {coord}")
+            # Return empty string instead of throwing exception for non-existent cells
+            return ""
 
-        return str(cell.get_value(self.spreadsheet))
+        # Use textual representation instead of calculated value
+        return cell.get_textual_representation()
 
     def get_cell_formula_expression(self, coord: str) -> str:
         """
@@ -113,7 +122,8 @@ class ISpreadsheetControllerForChecker:
         if not cell or not isinstance(cell.content, FormulaContent):
             raise ex.BadCoordinateException(f"No formula in cell: {coord}")
 
-        return "=" + cell.content.formula
+        # Return the formula as stored (which should already include the '=')
+        return cell.content.formula
 
     def save_spreadsheet_to_file(self, s_name_in_user_dir: str):
         """
@@ -131,24 +141,58 @@ class ISpreadsheetControllerForChecker:
             self._saver.validate_file_name(file_name)
             self._saver.validate_directory(directory)
 
-            # Prepare data: rows × columns
-            letters = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
-            max_row = max((coord.row for coord in self.spreadsheet.cells.keys()), default=0)
-
-            data = []
-            for r in range(1, max_row + 1):
-                row_vals = []
-                for c in letters:
-                    # FIX: Create Coordinate object instead of passing tuple
-                    coordinate = Coordinate(c, r)
-                    cell = self.spreadsheet.get_cell(coordinate)
-                    if cell and cell.content is not None:
-                        v = cell.content.get_value(self.spreadsheet)
+            # Find the actual bounds of the spreadsheet
+            if not self.spreadsheet.cells:
+                # Empty spreadsheet
+                data = []
+            else:
+                # Find max row
+                max_row = max((coord.row for coord in self.spreadsheet.cells.keys()), default=0)
+                
+                data = []
+                for r in range(1, max_row + 1):
+                    # For each row, find the rightmost column that has data
+                    row_cells = {}
+                    max_col_num = 0
+                    
+                    for coord in self.spreadsheet.cells.keys():
+                        if coord.row == r:
+                            # Convert column letter to number (A=1, B=2, etc.)
+                            col_num = 0
+                            for char in coord.column:
+                                col_num = col_num * 26 + (ord(char) - ord('A') + 1)
+                            row_cells[col_num] = coord
+                            max_col_num = max(max_col_num, col_num)
+                    
+                    # Build row values only up to the rightmost column with data
+                    row_vals = []
+                    for col_num in range(1, max_col_num + 1):
+                        if col_num in row_cells:
+                            coord = row_cells[col_num]
+                            cell = self.spreadsheet.get_cell(coord)
+                            if cell and cell.content is not None:
+                                # Get the textual representation (formulas, not calculated values)
+                                v = cell.get_textual_representation()
+                                # For numeric content, avoid .0 suffix for integers
+                                if cell.content.__class__.__name__ == 'NumericContent':
+                                    try:
+                                        num_val = float(v)
+                                        if num_val.is_integer():
+                                            v = str(int(num_val))
+                                    except:
+                                        pass
+                            else:
+                                v = ''
+                        else:
+                            v = ''
+                        # replace any ';' to avoid breaking the format
+                        row_vals.append(str(v).replace(";", ","))
+                    
+                    # Only add the row if it has at least one non-empty cell
+                    if any(val for val in row_vals):
+                        data.append(row_vals)
                     else:
-                        v = ''
-                    # replace any ';' to avoid breaking the format
-                    row_vals.append(str(v).replace(";", ","))
-                data.append(row_vals)
+                        data.append([])
 
             # Write out
             self._saver.save_spreadsheet_data(file_name, directory, data)
@@ -163,7 +207,18 @@ class ISpreadsheetControllerForChecker:
         Loads a spreadsheet from a .s2v file (semicolon-delimited) on disk.
         Raises ReadingSpreadsheetException on error.
         """
-        path = os.path.abspath(s_name_in_user_dir)
+        # First try the provided path as-is (relative to current directory)
+        if not os.path.isabs(s_name_in_user_dir):
+            path = os.path.join(os.getcwd(), s_name_in_user_dir)
+        else:
+            path = s_name_in_user_dir
+            
+        # If file doesn't exist, try looking in the markerrun directory
+        if not os.path.exists(path):
+            markerrun_path = os.path.join(os.getcwd(), "markerrun", s_name_in_user_dir)
+            if os.path.exists(markerrun_path):
+                path = markerrun_path
+        
         try:
             # Validate & read raw CSV data
             self._loader.validate_file_format(path)
@@ -189,6 +244,7 @@ class ISpreadsheetControllerForChecker:
                     coordinate = Coordinate(col_letter, row_idx)
 
                     if text.startswith('='):
+                        # Don't add extra = sign, just use the text as-is
                         content = FormulaContent(text)
                     elif re.fullmatch(r"\d+(?:\.\d+)?", text):
                         content = NumericContent(float(text))
