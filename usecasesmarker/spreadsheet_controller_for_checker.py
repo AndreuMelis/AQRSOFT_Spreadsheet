@@ -4,7 +4,7 @@ import re
 from content.numerical_content import NumericContent
 from content.text_content import TextContent
 from content.formula_content import FormulaContent
-
+from spreadsheet.coordinate import Coordinate
 from fileio.load_file import LoadFile
 from fileio.save_file import SaveFile
 
@@ -42,7 +42,7 @@ class ISpreadsheetControllerForChecker:
         col, row = m.group(1), int(m.group(2))
 
         if content.startswith('='):
-            cell_content = FormulaContent(content[1:])
+            cell_content = FormulaContent(content)
         elif re.fullmatch(r"\d+(?:\.\d+)?", content):
             cell_content = NumericContent(float(content))
         else:
@@ -59,7 +59,7 @@ class ISpreadsheetControllerForChecker:
         if not m:
             raise ex.BadCoordinateException(f"Invalid cell: {coord}")
         col, row = m.group(1), int(m.group(2))
-
+        
         cell = self.spreadsheet.get_cell((col, row))
         if not cell:
             raise ex.BadCoordinateException(f"Cell not found: {coord}")
@@ -163,23 +163,20 @@ class ISpreadsheetControllerForChecker:
                     col = chr(rem + ord('A')) + col
                 return col
 
-            for row_idx, row in enumerate(raw, start=1):
-                for col_idx, txt in enumerate(row):
-                    text = txt.strip().rstrip(';')
+            for row_idx, row_values in enumerate(raw, start=1):
+                for col_idx, cell_text in enumerate(row_values):
+                    text = cell_text.strip().rstrip(';')
                     if not text:
                         continue
-
                     col_letter = num_to_col(col_idx + 1)
-                    coord = (col_letter, row_idx)
-
+                    coord = Coordinate(col_letter, row_idx)
                     if text.startswith('='):
-                        content = FormulaContent(text[1:])
-                    elif re.fullmatch(r"\d+(?:\.\d+)?", text):
-                        content = NumericContent(float(text))
+                        content_obj = FormulaContent(text)
+                    elif re.fullmatch(r'\d+(\.\d+)?', text):
+                        content_obj = NumericContent(float(text))
                     else:
-                        content = TextContent(text)
-
-                    new_sheet.add_cell(coord, Cell(coord, content))
+                        content_obj = TextContent(text)
+                    new_sheet.add_cell(coord, Cell((col_letter, row_idx), content_obj))
 
             self.spreadsheet = new_sheet
 
