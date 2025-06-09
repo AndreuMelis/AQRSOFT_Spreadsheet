@@ -69,15 +69,12 @@ class MathematicalEvaluationException(Exception):
     def __init__(self, mssg=None):
         super().__init__(mssg)
 
-class NoNumberException(Exception):
-    def __init__(self, mssg=None):
-        super().__init__(mssg)
-
 class BadCoordinateException(Exception):
+    """Raised when a cell coordinate is syntactically invalid or refers to no cell."""
     def __init__(self, mssg=None):
         super().__init__(mssg)
 
-
-class ContentException(Exception):
+class NoNumberException(Exception):
+    """Raised when a cell’s content cannot be converted to a number."""
     def __init__(self, mssg=None):
         super().__init__(mssg)
