@@ -13,6 +13,7 @@ from fileio.save_file import SaveFile
 
 from spreadsheet.spreadsheet import Spreadsheet
 from spreadsheet.cell import Cell
+from spreadsheet.coordinate import Coordinate  # ADD THIS IMPORT
 
 import exceptions as ex
 from usecasesmarker.reading_spreadsheet_exception import ReadingSpreadsheetException
@@ -52,7 +53,9 @@ class ISpreadsheetControllerForChecker:
         else:
             cell_content = TextContent(content)
 
-        self.spreadsheet.add_cell((col, row), Cell((col, row), cell_content))
+        # FIX: Create Coordinate object instead of passing tuple
+        coordinate = Coordinate(col, row)
+        self.spreadsheet.add_cell(coordinate, Cell((col, row), cell_content))
 
     def get_cell_content_as_float(self, coord: str) -> float:
         """
@@ -64,7 +67,9 @@ class ISpreadsheetControllerForChecker:
             raise ex.BadCoordinateException(f"Invalid cell: {coord}")
         col, row = m.group(1), int(m.group(2))
 
-        cell = self.spreadsheet.get_cell((col, row))
+        # FIX: Create Coordinate object instead of passing tuple
+        coordinate = Coordinate(col, row)
+        cell = self.spreadsheet.get_cell(coordinate)
         if not cell:
             raise ex.BadCoordinateException(f"Cell not found: {coord}")
 
@@ -84,7 +89,9 @@ class ISpreadsheetControllerForChecker:
             raise ex.BadCoordinateException(f"Invalid cell: {coord}")
         col, row = m.group(1), int(m.group(2))
 
-        cell = self.spreadsheet.get_cell((col, row))
+        # FIX: Create Coordinate object instead of passing tuple
+        coordinate = Coordinate(col, row)
+        cell = self.spreadsheet.get_cell(coordinate)
         if not cell:
             raise ex.BadCoordinateException(f"Cell not found: {coord}")
 
@@ -100,7 +107,9 @@ class ISpreadsheetControllerForChecker:
             raise ex.BadCoordinateException(f"Invalid cell: {coord}")
         col, row = m.group(1), int(m.group(2))
 
-        cell = self.spreadsheet.get_cell((col, row))
+        # FIX: Create Coordinate object instead of passing tuple
+        coordinate = Coordinate(col, row)
+        cell = self.spreadsheet.get_cell(coordinate)
         if not cell or not isinstance(cell.content, FormulaContent):
             raise ex.BadCoordinateException(f"No formula in cell: {coord}")
 
@@ -124,13 +133,15 @@ class ISpreadsheetControllerForChecker:
 
             # Prepare data: rows × columns
             letters = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
-            max_row = max((r for (_, r) in self.spreadsheet.cells.keys()), default=0)
+            max_row = max((coord.row for coord in self.spreadsheet.cells.keys()), default=0)
 
             data = []
             for r in range(1, max_row + 1):
                 row_vals = []
                 for c in letters:
-                    cell = self.spreadsheet.get_cell((c, r))
+                    # FIX: Create Coordinate object instead of passing tuple
+                    coordinate = Coordinate(c, r)
+                    cell = self.spreadsheet.get_cell(coordinate)
                     if cell and cell.content is not None:
                         v = cell.content.get_value(self.spreadsheet)
                     else:
@@ -174,7 +185,8 @@ class ISpreadsheetControllerForChecker:
                         continue
 
                     col_letter = num_to_col(col_idx + 1)
-                    coord = (col_letter, row_idx)
+                    # FIX: Create Coordinate object instead of passing tuple
+                    coordinate = Coordinate(col_letter, row_idx)
 
                     if text.startswith('='):
                         content = FormulaContent(text)
@@ -183,7 +195,7 @@ class ISpreadsheetControllerForChecker:
                     else:
                         content = TextContent(text)
 
-                    new_sheet.add_cell(coord, Cell(coord, content))
+                    new_sheet.add_cell(coordinate, Cell((col_letter, row_idx), content))
 
             self.spreadsheet = new_sheet
 
