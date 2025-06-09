@@ -1,3 +1,6 @@
+# --------------------------------------------------------------------------------------------------
+# Archivo: usecasesmarker/spreadsheet_controller_for_checker.py
+# --------------------------------------------------------------------------------------------------
 import os
 import re
 
@@ -42,6 +45,7 @@ class ISpreadsheetControllerForChecker:
         col, row = m.group(1), int(m.group(2))
 
         if content.startswith('='):
+            # Keep the leading '=' so FormulaContent.validate_formula_format() passes
             cell_content = FormulaContent(content)
         elif re.fullmatch(r"\d+(?:\.\d+)?", content):
             cell_content = NumericContent(float(content))
@@ -171,9 +175,9 @@ class ISpreadsheetControllerForChecker:
                     col_letter = num_to_col(col_idx + 1)
                     coord = Coordinate(col_letter, row_idx)
                     if text.startswith('='):
-                        content_obj = FormulaContent(text)
-                    elif re.fullmatch(r'\d+(\.\d+)?', text):
-                        content_obj = NumericContent(float(text))
+                        content = FormulaContent(text)
+                    elif re.fullmatch(r"\d+(?:\.\d+)?", text):
+                        content = NumericContent(float(text))
                     else:
                         content_obj = TextContent(text)
                     new_sheet.add_cell(coord, Cell((col_letter, row_idx), content_obj))
