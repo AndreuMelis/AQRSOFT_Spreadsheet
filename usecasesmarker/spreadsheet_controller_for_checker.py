@@ -19,6 +19,11 @@ import exceptions as ex
 from usecasesmarker.reading_spreadsheet_exception import ReadingSpreadsheetException
 from usecasesmarker.saving_spreadsheet_exception import SavingSpreadsheetException
 
+# Import the entities exceptions that the test framework expects
+from entities.circular_dependency_exception import CircularDependencyException
+from entities.bad_coordinate_exception import BadCoordinateException
+from entities.no_number_exception import NoNumberException
+
 
 class ISpreadsheetControllerForChecker:
     """
@@ -42,7 +47,7 @@ class ISpreadsheetControllerForChecker:
         content = str(str_content)
         m = re.fullmatch(r"([A-Z]+)(\d+)", coord)
         if not m:
-            raise ex.BadCoordinateException(f"Invalid Cell: {coord}")
+            raise BadCoordinateException(f"Invalid Cell: {coord}")
         col, row = m.group(1), int(m.group(2))
 
         if content.startswith('='):
@@ -53,7 +58,11 @@ class ISpreadsheetControllerForChecker:
             # This must happen before the cell is added to prevent circular references
             raw_expression = content[1:].replace(',', ';')
             tokens = cell_content.tokenize(raw_expression)
-            cell_content.check_circular_dependencies(self.spreadsheet, tokens, coord.upper())
+            try:
+                cell_content.check_circular_dependencies(self.spreadsheet, tokens, coord.upper())
+            except ex.CircularDependencyException as e:
+                # Re-raise using the entities exception that the test expects
+                raise CircularDependencyException(str(e))
                     
         elif re.fullmatch(r"\d+(?:\.\d+)?", content):
             cell_content = NumericContent(float(content))
@@ -71,20 +80,20 @@ class ISpreadsheetControllerForChecker:
         """
         m = re.fullmatch(r"([A-Z]+)(\d+)", coord)
         if not m:
-            raise ex.BadCoordinateException(f"Invalid cell: {coord}")
+            raise BadCoordinateException(f"Invalid cell: {coord}")
         col, row = m.group(1), int(m.group(2))
 
         # FIX: Create Coordinate object instead of passing tuple
         coordinate = Coordinate(col, row)
         cell = self.spreadsheet.get_cell(coordinate)
         if not cell:
-            raise ex.BadCoordinateException(f"Cell not found: {coord}")
+            raise BadCoordinateException(f"Cell not found: {coord}")
 
         val = cell.get_value(self.spreadsheet)
         try:
             return float(val)
         except (ValueError, TypeError):
-            raise ex.NoNumberException(f"Cell content is not a valid float: {val}")
+            raise NoNumberException(f"Cell content is not a valid float: {val}")
 
     def get_cell_content_as_string(self, coord: str) -> str:
         """
@@ -93,7 +102,7 @@ class ISpreadsheetControllerForChecker:
         """
         m = re.fullmatch(r"([A-Z]+)(\d+)", coord)
         if not m:
-            raise ex.BadCoordinateException(f"Invalid cell: {coord}")
+            raise BadCoordinateException(f"Invalid cell: {coord}")
         col, row = m.group(1), int(m.group(2))
 
         # FIX: Create Coordinate object instead of passing tuple
@@ -113,14 +122,14 @@ class ISpreadsheetControllerForChecker:
         """
         m = re.fullmatch(r"([A-Z]+)(\d+)", coord)
         if not m:
-            raise ex.BadCoordinateException(f"Invalid cell: {coord}")
+            raise BadCoordinateException(f"Invalid cell: {coord}")
         col, row = m.group(1), int(m.group(2))
 
         # FIX: Create Coordinate object instead of passing tuple
         coordinate = Coordinate(col, row)
         cell = self.spreadsheet.get_cell(coordinate)
         if not cell or not isinstance(cell.content, FormulaContent):
-            raise ex.BadCoordinateException(f"No formula in cell: {coord}")
+            raise BadCoordinateException(f"No formula in cell: {coord}")
 
         # Return the formula as stored (which should already include the '=')
         return cell.content.formula
