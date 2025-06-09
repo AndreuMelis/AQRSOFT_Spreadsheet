@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import importlib
-
+import sys
 from ClasesCorrector import SuperClassForTests
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 class TestRunner:
 

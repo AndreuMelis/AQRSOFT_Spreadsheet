@@ -13,12 +13,5 @@ class SpreadSheetFactoryForChecker:
 
     def create_spreadsheet_controller() -> ISpreadsheetControllerForChecker:
         #REPLACE THE FOLLOWING CODE!!!
-        raise Exception("SpreadsheetFactoryForChecker::" \
-                        + "create_spreadsheet_controller(). You MUST implement the code of " \
-                        + "this method in this class. The code MUST create a class that " \
-                        + "implements the methods specified within ISpreadsheetControllerForChecker. " \
-                        + "This code must create the framework of objects that allow that, once finalized its execution, " \
-                        + "everything is ready for invoking the methods of the object implementing the methods specified within " \
-                        + "ISpreadsheetControllerForChecker and starting setting contents in the spreadsheet cells and start checking results " \
-                        + "marking your code"
-                        )
+        def create_spreadsheet_controller() -> ISpreadsheetControllerForChecker:
+            return ISpreadsheetControllerForChecker()
