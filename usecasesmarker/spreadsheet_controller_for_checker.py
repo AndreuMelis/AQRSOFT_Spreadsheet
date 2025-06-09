@@ -48,7 +48,14 @@ class ISpreadsheetControllerForChecker:
         if content.startswith('='):
             # Keep the leading '=' so FormulaContent.validate_formula_format() passes
             cell_content = FormulaContent(content)
-        elif re.fullmatch(r"\d+\.\d+", content):
+            
+            # For formulas, check circular dependencies BEFORE adding the cell
+            # This must happen before the cell is added to prevent circular references
+            raw_expression = content[1:].replace(',', ';')
+            tokens = cell_content.tokenize(raw_expression)
+            cell_content.check_circular_dependencies(self.spreadsheet, tokens, coord.upper())
+                    
+        elif re.fullmatch(r"\d+(?:\.\d+)?", content):
             cell_content = NumericContent(float(content))
         elif re.fullmatch(r"\d+", content):
             cell_content = NumericContent(int(content))
@@ -84,7 +91,7 @@ class ISpreadsheetControllerForChecker:
     def get_cell_content_as_string(self, coord: str) -> str:
         """
         Retrieves the content of a cell as a string.
-        Raises BadCoordinateException if the cell does not exist.
+        Returns empty string if the cell does not exist (instead of throwing exception).
         """
         m = re.fullmatch(r"([A-Z]+)(\d+)", coord)
         if not m:
@@ -95,9 +102,11 @@ class ISpreadsheetControllerForChecker:
         coordinate = Coordinate(col, row)
         cell = self.spreadsheet.get_cell(coordinate)
         if not cell:
-            raise ex.BadCoordinateException(f"Cell not found: {coord}")
+            # Return empty string instead of throwing exception for non-existent cells
+            return ""
 
-        return str(cell.get_value(self.spreadsheet))
+        # Use textual representation instead of calculated value
+        return cell.get_textual_representation()
 
     def get_cell_formula_expression(self, coord: str) -> str:
         """
@@ -115,7 +124,8 @@ class ISpreadsheetControllerForChecker:
         if not cell or not isinstance(cell.content, FormulaContent):
             raise ex.BadCoordinateException(f"No formula in cell: {coord}")
 
-        return "=" + cell.content.formula
+        # Return the formula as stored (which should already include the '=')
+        return cell.content.formula
 
     def save_spreadsheet_to_file(self, s_name_in_user_dir: str):
         """
@@ -132,25 +142,58 @@ class ISpreadsheetControllerForChecker:
             self._saver.validate_file_name(file_name)
             self._saver.validate_directory(directory)
 
-            # Columns from A to Z
-            # Get only the column letters present in the spreadsheet
-            letters = sorted({coord.column for coord in self.spreadsheet.cells.keys()})
-            max_row = max((coord.row for coord in self.spreadsheet.cells.keys()), default=0)
-
-            # Build a 2D list of strings (each row is a list of cell values)
-            spreadsheet_data = []
-            for row in range(1, max_row + 1):
-                row_list = []
-                for col in letters:
-                    coord = Coordinate(col, row)
-                    cell = self.spreadsheet.cells.get(coord)
-                    if cell and cell.content is not None:
-                        value = cell.get_textual_representation()
-                        cell_str = str(value).replace(";", ",")
+            # Find the actual bounds of the spreadsheet
+            if not self.spreadsheet.cells:
+                # Empty spreadsheet
+                data = []
+            else:
+                # Find max row
+                max_row = max((coord.row for coord in self.spreadsheet.cells.keys()), default=0)
+                
+                data = []
+                for r in range(1, max_row + 1):
+                    # For each row, find the rightmost column that has data
+                    row_cells = {}
+                    max_col_num = 0
+                    
+                    for coord in self.spreadsheet.cells.keys():
+                        if coord.row == r:
+                            # Convert column letter to number (A=1, B=2, etc.)
+                            col_num = 0
+                            for char in coord.column:
+                                col_num = col_num * 26 + (ord(char) - ord('A') + 1)
+                            row_cells[col_num] = coord
+                            max_col_num = max(max_col_num, col_num)
+                    
+                    # Build row values only up to the rightmost column with data
+                    row_vals = []
+                    for col_num in range(1, max_col_num + 1):
+                        if col_num in row_cells:
+                            coord = row_cells[col_num]
+                            cell = self.spreadsheet.get_cell(coord)
+                            if cell and cell.content is not None:
+                                # Get the textual representation (formulas, not calculated values)
+                                v = cell.get_textual_representation()
+                                # For numeric content, avoid .0 suffix for integers
+                                if cell.content.__class__.__name__ == 'NumericContent':
+                                    try:
+                                        num_val = float(v)
+                                        if num_val.is_integer():
+                                            v = str(int(num_val))
+                                    except:
+                                        pass
+                            else:
+                                v = ''
+                        else:
+                            v = ''
+                        # replace any ';' to avoid breaking the format
+                        row_vals.append(str(v).replace(";", ","))
+                    
+                    # Only add the row if it has at least one non-empty cell
+                    if any(val for val in row_vals):
+                        data.append(row_vals)
                     else:
-                        cell_str = ''
-                    row_list.append(cell_str)
-                spreadsheet_data.append(row_list)
+                        data.append([])
 
             # Actually write to file, joining each row with semicolons
             self._saver.save_spreadsheet_data(file_name, directory, spreadsheet_data)
@@ -165,7 +208,20 @@ class ISpreadsheetControllerForChecker:
         Loads a spreadsheet from a .s2v file (semicolon-delimited) on disk.
         Raises ReadingSpreadsheetException on error.
         """
-        path = os.path.abspath(s_name_in_user_dir)
+        import re  # Move import to the top of the method
+        
+        # First try the provided path as-is (relative to current directory)
+        if not os.path.isabs(s_name_in_user_dir):
+            path = os.path.join(os.getcwd(), s_name_in_user_dir)
+        else:
+            path = s_name_in_user_dir
+            
+        # If file doesn't exist, try looking in the markerrun directory
+        if not os.path.exists(path):
+            markerrun_path = os.path.join(os.getcwd(), "markerrun", s_name_in_user_dir)
+            if os.path.exists(markerrun_path):
+                path = markerrun_path
+        
         try:
             # Validate & read raw CSV data
             self._loader.validate_file_format(path)
@@ -190,6 +246,39 @@ class ISpreadsheetControllerForChecker:
                     coordinate = Coordinate(col_letter, row_idx)
 
                     if text.startswith('='):
+                        # Convert commas to semicolons in SUMA functions when loading
+                        # but preserve commas between top-level arguments that are functions
+                        if "SUMA(" in text:
+                            def replace_suma_commas(match):
+                                full_match = match.group(0)  # The entire SUMA(...) match
+                                content = full_match[5:-1]   # Remove "SUMA(" and ")"
+                                
+                                # Parse arguments more carefully
+                                result = ""
+                                paren_depth = 0
+                                for char in content:
+                                    if char == '(':
+                                        paren_depth += 1
+                                        result += char
+                                    elif char == ')':
+                                        paren_depth -= 1
+                                        result += char
+                                    elif char == ',' and paren_depth == 0:
+                                        # This is a top-level comma, check if it's before a function
+                                        # Look ahead to see if the next argument starts with a function name
+                                        remaining = content[len(result)+1:].strip()
+                                        if remaining.startswith(('MIN(', 'MAX(', 'PROMEDIO(', 'SUMA(')):
+                                            result += ','  # Keep comma before functions
+                                        else:
+                                            result += ';'  # Replace with semicolon for regular arguments
+                                    else:
+                                        result += char
+                                
+                                return f"SUMA({result})"
+                            
+                            pattern = r'SUMA\([^()]*(?:\([^()]*\)[^()]*)*\)'
+                            text = re.sub(pattern, replace_suma_commas, text)
+                        
                         content = FormulaContent(text)
                     elif re.fullmatch(r"\d+\.\d+", text):
                         content = NumericContent(float(text))

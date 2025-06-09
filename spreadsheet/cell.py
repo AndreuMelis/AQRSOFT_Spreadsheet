@@ -47,7 +47,15 @@ class Cell:
         Devuelve el valor calculado por el content.
         Si el contenido es fórmula, puede necesitar 'spreadsheet' para resolver referencias.
         """
-        return self._content.get_value(spreadsheet)
+        # Import here to avoid circular imports
+        from content.formula_content import FormulaContent
+        
+        if isinstance(self._content, FormulaContent) and spreadsheet is not None:
+            # For formulas, pass the current cell name to avoid circular dependency issues
+            current_cell_name = f"{self._coordinate.column}{self._coordinate.row}"
+            return self._content.get_value(spreadsheet, current_cell_name)
+        else:
+            return self._content.get_value(spreadsheet)
 
     @staticmethod
     def from_token(token_value: str, spreadsheet: "Spreadsheet" = None) -> "Cell":
