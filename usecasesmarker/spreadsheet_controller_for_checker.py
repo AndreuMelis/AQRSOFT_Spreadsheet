@@ -247,10 +247,35 @@ class ISpreadsheetControllerForChecker:
 
                     if text.startswith('='):
                         # Convert commas to semicolons in SUMA functions when loading
+                        # but preserve commas between top-level arguments that are functions
                         if "SUMA(" in text:
                             def replace_suma_commas(match):
-                                full_match = match.group(0)
-                                return full_match.replace(',', ';')
+                                full_match = match.group(0)  # The entire SUMA(...) match
+                                content = full_match[5:-1]   # Remove "SUMA(" and ")"
+                                
+                                # Parse arguments more carefully
+                                result = ""
+                                paren_depth = 0
+                                for char in content:
+                                    if char == '(':
+                                        paren_depth += 1
+                                        result += char
+                                    elif char == ')':
+                                        paren_depth -= 1
+                                        result += char
+                                    elif char == ',' and paren_depth == 0:
+                                        # This is a top-level comma, check if it's before a function
+                                        # Look ahead to see if the next argument starts with a function name
+                                        remaining = content[len(result)+1:].strip()
+                                        if remaining.startswith(('MIN(', 'MAX(', 'PROMEDIO(', 'SUMA(')):
+                                            result += ','  # Keep comma before functions
+                                        else:
+                                            result += ';'  # Replace with semicolon for regular arguments
+                                    else:
+                                        result += char
+                                
+                                return f"SUMA({result})"
+                            
                             pattern = r'SUMA\([^()]*(?:\([^()]*\)[^()]*)*\)'
                             text = re.sub(pattern, replace_suma_commas, text)
                         
