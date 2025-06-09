@@ -69,3 +69,15 @@ class MathematicalEvaluationException(Exception):
     def __init__(self, mssg=None):
         super().__init__(mssg)
 
+class NoNumberException(Exception):
+    def __init__(self, mssg=None):
+        super().__init__(mssg)
+
+class BadCoordinateException(Exception):
+    def __init__(self, mssg=None):
+        super().__init__(mssg)
+
+
+class ContentException(Exception):
+    def __init__(self, mssg=None):
+        super().__init__(mssg)

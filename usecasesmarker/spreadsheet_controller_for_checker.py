@@ -52,7 +52,7 @@ class ISpreadsheetControllerForChecker:
         else:
             cell_content = TextContent(content)
 
-        self.spreadsheet.add_cell((col, row), Cell((col, row), cell_content))
+        self.spreadsheet.add_cell(Coordinate(col, row), Cell((col, row), cell_content))
 
     def get_cell_content_as_float(self, coord: str) -> float:
         """
@@ -64,7 +64,7 @@ class ISpreadsheetControllerForChecker:
             raise ex.BadCoordinateException(f"Invalid cell: {coord}")
         col, row = m.group(1), int(m.group(2))
         
-        cell = self.spreadsheet.get_cell((col, row))
+        cell = self.spreadsheet.get_cell(Coordinate(col, row))
         if not cell:
             raise ex.BadCoordinateException(f"Cell not found: {coord}")
 
@@ -84,7 +84,7 @@ class ISpreadsheetControllerForChecker:
             raise ex.BadCoordinateException(f"Invalid cell: {coord}")
         col, row = m.group(1), int(m.group(2))
 
-        cell = self.spreadsheet.get_cell((col, row))
+        cell = self.spreadsheet.get_cell(Coordinate(col, row))
         if not cell:
             raise ex.BadCoordinateException(f"Cell not found: {coord}")
 

@@ -39,7 +39,7 @@ class Spreadsheet:
         return self._dep_manager
 
     def add_cell(self, coords: Coordinate, cell: Cell) -> None:
-        self.cells[coords] = cell
+        self.cells[cell.coordinate] = cell
 
     def print_spreadsheet(self) -> None:
         """
