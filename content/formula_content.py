@@ -110,25 +110,9 @@ class FormulaContent(CellContent):
 
     def get_text(self) -> str:
         """
-        Returns the formula as a string exactly as stored, but with function arguments
-        using semicolons instead of commas for Spanish locale formatting.
+        Returns the formula as a string exactly as stored.
         """
-        formula_text = str(self.formula)
-        
-        # Convert commas to semicolons in function arguments
-        # This handles cases like SUMA(1,2,3) -> SUMA(1;2;3)
-        import re
-        
-        def replace_commas_in_functions(match):
-            func_content = match.group(1)  # Content inside parentheses
-            # Replace commas with semicolons, but be careful not to replace commas in nested functions
-            return f"({func_content.replace(',', ';')})"
-        
-        # Replace commas with semicolons inside function parentheses
-        # This pattern matches parentheses that likely contain function arguments
-        formula_text = re.sub(r'\(([^()]*)\)', replace_commas_in_functions, formula_text)
-        
-        return formula_text
+        return str(self.formula)
     
     
     def __repr__(self):

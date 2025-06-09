@@ -207,6 +207,8 @@ class ISpreadsheetControllerForChecker:
         Loads a spreadsheet from a .s2v file (semicolon-delimited) on disk.
         Raises ReadingSpreadsheetException on error.
         """
+        import re  # Move import to the top of the method
+        
         # First try the provided path as-is (relative to current directory)
         if not os.path.isabs(s_name_in_user_dir):
             path = os.path.join(os.getcwd(), s_name_in_user_dir)
@@ -244,7 +246,14 @@ class ISpreadsheetControllerForChecker:
                     coordinate = Coordinate(col_letter, row_idx)
 
                     if text.startswith('='):
-                        # Don't add extra = sign, just use the text as-is
+                        # Convert commas to semicolons in SUMA functions when loading
+                        if "SUMA(" in text:
+                            def replace_suma_commas(match):
+                                full_match = match.group(0)
+                                return full_match.replace(',', ';')
+                            pattern = r'SUMA\([^()]*(?:\([^()]*\)[^()]*)*\)'
+                            text = re.sub(pattern, replace_suma_commas, text)
+                        
                         content = FormulaContent(text)
                     elif re.fullmatch(r"\d+(?:\.\d+)?", text):
                         content = NumericContent(float(text))
