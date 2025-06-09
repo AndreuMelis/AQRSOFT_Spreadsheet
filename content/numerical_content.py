@@ -5,9 +5,9 @@ from content.number import Number, NumberValue
 
 
 class NumericContent(CellContent):
-    def __init__(self, number: Union[Number, NumberValue]):
+    def __init__(self, number: NumberValue):
         # Acepta tanto Number como valor crudo
-        self.number = number if isinstance(number, Number) else Number(number)
+        self.number = Number(number) if isinstance(number, (int, float)) else number
 
     # API pública
     def get_number(self) -> float:

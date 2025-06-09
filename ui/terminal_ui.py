@@ -86,8 +86,10 @@ class TerminalUI:
                     coord = Coordinate(col_letter, row_idx)
                     if text.startswith('='):
                         content_obj = FormulaContent(text)
-                    elif re.fullmatch(r'\d+(\.\d+)?', text):
+                    elif re.fullmatch(r"\d+\.\d+", text):
                         content_obj = NumericContent(float(text))
+                    elif re.fullmatch(r"\d+", text):
+                        content_obj = NumericContent(int(text))
                     else:
                         content_obj = TextContent(text)
                     new_sheet.add_cell(coord, Cell((col_letter, row_idx), content_obj))
@@ -117,8 +119,10 @@ class TerminalUI:
             # Build the new content object
             if cell_content.startswith('='):
                 content_obj = FormulaContent(cell_content)
-            elif re.fullmatch(r"\d+(?:\.\d+)?", cell_content):
+            elif re.fullmatch(r"\d+\.\d+", cell_content):
                 content_obj = NumericContent(float(cell_content))
+            elif re.fullmatch(r"\d+", cell_content):
+                content_obj = NumericContent(int(cell_content))
             else:
                 content_obj = TextContent(cell_content)
 

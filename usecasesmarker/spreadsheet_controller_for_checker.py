@@ -48,8 +48,10 @@ class ISpreadsheetControllerForChecker:
         if content.startswith('='):
             # Keep the leading '=' so FormulaContent.validate_formula_format() passes
             cell_content = FormulaContent(content)
-        elif re.fullmatch(r"\d+(?:\.\d+)?", content):
+        elif re.fullmatch(r"\d+\.\d+", content):
             cell_content = NumericContent(float(content))
+        elif re.fullmatch(r"\d+", content):
+            cell_content = NumericContent(int(content))
         else:
             cell_content = TextContent(content)
 
@@ -127,31 +129,31 @@ class ISpreadsheetControllerForChecker:
         directory = os.getcwd()
 
         try:
-            # Validate name & directory
             self._saver.validate_file_name(file_name)
             self._saver.validate_directory(directory)
 
-            # Prepare data: rows × columns
-            letters = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
+            # Columns from A to Z
+            # Get only the column letters present in the spreadsheet
+            letters = sorted({coord.column for coord in self.spreadsheet.cells.keys()})
             max_row = max((coord.row for coord in self.spreadsheet.cells.keys()), default=0)
 
-            data = []
-            for r in range(1, max_row + 1):
-                row_vals = []
-                for c in letters:
-                    # FIX: Create Coordinate object instead of passing tuple
-                    coordinate = Coordinate(c, r)
-                    cell = self.spreadsheet.get_cell(coordinate)
+            # Build a 2D list of strings (each row is a list of cell values)
+            spreadsheet_data = []
+            for row in range(1, max_row + 1):
+                row_list = []
+                for col in letters:
+                    coord = Coordinate(col, row)
+                    cell = self.spreadsheet.cells.get(coord)
                     if cell and cell.content is not None:
-                        v = cell.content.get_value(self.spreadsheet)
+                        value = cell.get_textual_representation()
+                        cell_str = str(value).replace(";", ",")
                     else:
-                        v = ''
-                    # replace any ';' to avoid breaking the format
-                    row_vals.append(str(v).replace(";", ","))
-                data.append(row_vals)
+                        cell_str = ''
+                    row_list.append(cell_str)
+                spreadsheet_data.append(row_list)
 
-            # Write out
-            self._saver.save_spreadsheet_data(file_name, directory, data)
+            # Actually write to file, joining each row with semicolons
+            self._saver.save_spreadsheet_data(file_name, directory, spreadsheet_data)
 
         except Exception as e:
             raise SavingSpreadsheetException(
@@ -189,8 +191,10 @@ class ISpreadsheetControllerForChecker:
 
                     if text.startswith('='):
                         content = FormulaContent(text)
-                    elif re.fullmatch(r"\d+(?:\.\d+)?", text):
+                    elif re.fullmatch(r"\d+\.\d+", text):
                         content = NumericContent(float(text))
+                    elif re.fullmatch(r"\d+", text):
+                        content = NumericContent(int(text))
                     else:
                         content = TextContent(text)
 

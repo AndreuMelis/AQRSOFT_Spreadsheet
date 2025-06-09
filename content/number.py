@@ -14,21 +14,21 @@ class Number:
 
     # Propiedad
     @property
-    def value(self) -> float:
+    def value(self) -> NumberValue:
         return self._value
 
     @value.setter
     def value(self, v: NumberValue):
-        if not isinstance(v, (int, float)):
+        if not isinstance(v, NumberValue):
             raise TypeError("Number must be int or float")
-        self._value = float(v)
+        self._value = v
 
     # API unificada
-    def get_value(self) -> float:
+    def get_value(self) -> NumberValue:
         return self._value
 
     # Conversión cómoda
-    def __float__(self) -> float:
+    def __float__(self) -> NumberValue:
         return self._value
 
     def __str__(self) -> str:
