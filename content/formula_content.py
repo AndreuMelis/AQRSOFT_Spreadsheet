@@ -30,13 +30,16 @@ class FormulaContent(CellContent):
         # Step 1: Tokenize into raw strings (e.g., ['A1', '+', '3'])
         tokens = self.tokenize(raw_expression)
 
-        # Step 2: Parse into typed tokens (Operator, Operand, Reference, etc.)
+        # Step 2: CHECK CIRCULAR DEPENDENCIES FIRST, before creating objects
+        self.check_circular_dependencies(spreadsheet, tokens, current_cell_name)
+
+        # Step 3: Parse into typed tokens (Operator, Operand, Reference, etc.)
         typed_tokens = self.parse_tokens(tokens, spreadsheet)
 
-        # Step 3: Convert to postfix for evaluation
+        # Step 4: Convert to postfix for evaluation
         postfix_tokens = self.convert_to_postfix(typed_tokens)
 
-        # Step 4: Evaluate postfix expression — now we resolve references using the spreadsheet
+        # Step 5: Evaluate postfix expression
         result = self.evaluate_postfix(postfix_tokens, spreadsheet)
 
         return result
