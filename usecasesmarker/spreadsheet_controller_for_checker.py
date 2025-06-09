@@ -196,7 +196,7 @@ class ISpreadsheetControllerForChecker:
                         data.append([])
 
             # Actually write to file, joining each row with semicolons
-            self._saver.save_spreadsheet_data(file_name, directory, spreadsheet_data)
+            self._saver.save_spreadsheet_data(file_name, directory, data)
 
         except Exception as e:
             raise SavingSpreadsheetException(
