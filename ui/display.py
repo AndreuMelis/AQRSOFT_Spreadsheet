@@ -15,9 +15,3 @@ class DisplayContent:
             for cell_data in row:
                 print(cell_data.replace(';', '\t'), end='\t')
             print()
-            
-    def create_new_spreadsheet(self):
-        pass
-
-    def edit_content():
-        pass

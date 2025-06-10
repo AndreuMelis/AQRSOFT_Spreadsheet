@@ -9,9 +9,7 @@ from formula.operand import Operand
 from formula.operator import Operator
 from formula.parser import Parser
 from formula.postfix_converter import PostfixConverter
-from spreadsheet.dependency_manager import DependencyManager
 from spreadsheet.spreadsheet import Spreadsheet
-from spreadsheet.dependency_manager import DependencyManager
 import re
 
 class FormulaContent(CellContent):
@@ -20,11 +18,15 @@ class FormulaContent(CellContent):
         self.formula: str = formula
         self.operands: List['Operand'] = []
         self.operators: List['Operator'] = []
+        self.tokenizer = Tokenizer()
+        self.parser: Optional[Parser] = None
+        self.postfix_converter: PostfixConverter = PostfixConverter()
+        self.postfix_evaluator: PostfixExpressionEvaluator = PostfixExpressionEvaluator()
         
         # Simple caching: store the computed value
         self._computed_value: Optional[float] = None
 
-    def get_value(self, spreadsheet: Optional[Spreadsheet], current_cell_name: str = None) -> float:
+    def get_value(self, spreadsheet: Optional[Spreadsheet] = None, current_cell_name: str = None) -> float:
         # If we already have a computed value, return it
         if self._computed_value is not None:
             return self._computed_value
@@ -42,19 +44,21 @@ class FormulaContent(CellContent):
         raw_expression = str(self.formula)[1:].replace(',', ';')
 
         # Step 1: Tokenize into raw strings (e.g., ['A1', '+', '3'])
-        tokens = self.tokenize(raw_expression)
+        tokens = self.tokenizer.tokenize(raw_expression)
 
         # Step 2: CHECK CIRCULAR DEPENDENCIES FIRST, before creating objects
-        self.check_circular_dependencies(spreadsheet, tokens, current_cell_name)
+        self.check_circular_dependencies(spreadsheet, current_cell_name)
 
         # Step 3: Parse into typed tokens (Operator, Operand, Reference, etc.)
-        typed_tokens = self.parse_tokens(tokens, spreadsheet)
+        self.parser = Parser(tokens)
+        typed_tokens = self.parser.parse_tokens(spreadsheet)
 
         # Step 4: Convert to postfix for evaluation
-        postfix_tokens = self.convert_to_postfix(typed_tokens)
+        self.postfix_converter = PostfixConverter()
+        postfix_tokens = self.postfix_converter.convert_to_postfix(typed_tokens)
 
         # Step 5: Evaluate postfix expression
-        result = self.evaluate_postfix(postfix_tokens)
+        result = self.postfix_evaluator.evaluate_postfix_expression(postfix_tokens)
 
         return result
 
@@ -72,20 +76,7 @@ class FormulaContent(CellContent):
         """
         return self.formula.startswith("=")
 
-    def tokenize(self, expression: str):
-        """
-        Tokenizes the input expression using the Tokenizer class.
-        """
-        return Tokenizer().tokenize(expression)
-    
-    def parse_tokens(self, tokens: list, spreadsheet: Spreadsheet):
-        """
-        Validates the syntax of tokenized formula component.
-        """
-        parser = Parser(tokens)
-        return parser.parse_tokens(spreadsheet)
-
-    def check_circular_dependencies(self, spreadsheet: Spreadsheet, tokens: list, current_cell_name: str = None):
+    def check_circular_dependencies(self, spreadsheet: Spreadsheet, current_cell_name: str = None):
         """
         Extracts the current cell and all referenced cells from the formula,
         and checks for circular dependencies.
@@ -101,12 +92,11 @@ class FormulaContent(CellContent):
         else:
             current_cell = current_cell_name
 
-        # Identify referenced cells (only tokens whose kind is 'CELL')
+        # Identify referenced cells (only tokens whose kind is 'RANGE' or 'CELL')
         referenced_cells = set(self.get_referenced_cells())
 
-
         # STEP 4 — Use DependencyManager to detect cycles
-        dependency_manager = spreadsheet.get_dependency_manager()
+        dependency_manager = spreadsheet.dep_manager
         dependency_manager.check_circular_dependencies(current_cell, referenced_cells)
 
         # STEP 5 — If all is good, update the graph
@@ -137,17 +127,6 @@ class FormulaContent(CellContent):
             refs.add(cell)
 
         return list(refs)
-
-    def convert_to_postfix(self, tokens):
-        """
-        Converts infix tokens to postfix using the PostfixConverter.
-        """
-        converter = PostfixConverter()            
-        return converter.convert_to_postfix(tokens)
-
-    def evaluate_postfix(self, postfix_tokens):
-        evaluator = PostfixExpressionEvaluator()
-        return evaluator.evaluate_postfix_expression(postfix_tokens)
 
     def get_text(self) -> str:
         """

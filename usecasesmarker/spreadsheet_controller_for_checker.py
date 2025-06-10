@@ -57,9 +57,9 @@ class ISpreadsheetControllerForChecker:
             # For formulas, check circular dependencies BEFORE adding the cell
             # This must happen before the cell is added to prevent circular references
             raw_expression = content[1:].replace(',', ';')
-            tokens = cell_content.tokenize(raw_expression)
+            tokens = cell_content.tokenizer.tokenize(raw_expression)
             try:
-                cell_content.check_circular_dependencies(self.spreadsheet, tokens, coord.upper())
+                cell_content.check_circular_dependencies(self.spreadsheet, coord.upper())
             except ex.CircularDependencyException as e:
                 # Re-raise using the entities exception that the test expects
                 raise CircularDependencyException(str(e))

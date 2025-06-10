@@ -10,6 +10,7 @@ class Spreadsheet:
     def __init__(self):
         # Diccionario: clave = Coordinate, valor = Cell
         self.cells: Dict[Coordinate, Cell] = {}
+        self.dep_manager = DependencyManager()
 
     def get_cell(self, coords: Coordinate) -> Cell | None:
         return self.cells.get(coords)
@@ -30,13 +31,13 @@ class Spreadsheet:
         """
         return bool(re.fullmatch(r"[A-Z]+\d+", token))
 
-    def get_dependency_manager(self) -> DependencyManager:
-        """
-        Return (or create) the DependencyManager instance for this spreadsheet.
-        """
-        if not hasattr(self, "_dep_manager"):
-            self._dep_manager = DependencyManager()
-        return self._dep_manager
+    # def get_dependency_manager(self) -> DependencyManager:
+    #     """
+    #     Return (or create) the DependencyManager instance for this spreadsheet.
+    #     """
+    #     if not hasattr(self, "_dep_manager"):
+    #         self._dep_manager = DependencyManager()
+    #     return self._dep_manager
 
     def add_cell(self, coords: Coordinate, cell: Cell) -> None:
         """Add a cell and invalidate dependent formulas"""
@@ -52,12 +53,10 @@ class Spreadsheet:
         """
         Find all formulas that reference the changed cell and invalidate their computed values.
         This forces them to recalculate when next accessed.
-        """
-        dependency_manager = self.get_dependency_manager()
-        
+        """        
         # Get all cells that depend on the changed cell
         dependent_cells = []
-        for cell_name, dependencies in dependency_manager.dependency_graph.items():
+        for cell_name, dependencies in self.dep_manager.dependency_graph.items():
             if changed_cell_name in dependencies:
                 dependent_cells.append(cell_name)
         
@@ -79,7 +78,7 @@ class Spreadsheet:
                         cell.content.invalidate_value()
                         
                         # Add cells that depend on this cell to the invalidation queue
-                        for other_cell, other_deps in dependency_manager.dependency_graph.items():
+                        for other_cell, other_deps in self.dep_manager.dependency_graph.items():
                             if cell_name in other_deps and other_cell not in visited:
                                 to_invalidate.append(other_cell)
                     break

@@ -1,8 +1,8 @@
 from spreadsheet.spreadsheet import Spreadsheet
-from ui.terminal_ui import TerminalUI
+from spreadsheet.spreadsheet_controller import SpreadsheetController
 
 if __name__ == "__main__":
 
     spreadsheet = Spreadsheet()
-    ui = TerminalUI(spreadsheet)
-    ui.run()
+    spreadsheet_controller = SpreadsheetController(spreadsheet)
+    spreadsheet_controller.run_menu()

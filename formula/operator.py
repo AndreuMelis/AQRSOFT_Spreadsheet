@@ -78,5 +78,3 @@ class ParenthesisOperator(Operator):
         else:
             raise ValueError(f"Unknown parenthesis operator token: {token_value}")
 
-# NOTE: The top-level factory function create_operator_from_token has been removed
-# as its logic is now integrated into the Parser class.

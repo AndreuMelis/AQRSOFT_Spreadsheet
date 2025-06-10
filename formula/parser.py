@@ -28,31 +28,6 @@ class Parser:
         if token:
             self.pos += 1
         return token
-    
-    # def is_operand(self, token_type: str, token_value: str) -> bool:
-    #     """Check if token represents an operand"""
-    #     if token_type == 'NUMBER':
-    #         try:
-    #             # Accept both int and float, but require '.' for float
-    #             if '.' in token_value:
-    #                 float(token_value)
-    #             else:
-    #                 int(token_value)
-    #             return True
-    #         except (ValueError, TypeError):
-    #             return False
-    #     elif token_type == 'CELL':
-    #         return re.match(r'^[A-Z]+\d+$')
-    
-    # def is_operator(self, token_type: str, token_value: str) -> bool:
-    #     """Check if token represents an operator"""
-    #     # Check by token value first
-    #     if str(token_value) in ['+', '-', '*', '/', '(', ')']:
-    #         return True
-    #     # Check by token type
-    #     if token_type in ['PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'LPAREN', 'RPAREN']:
-    #         return True
-    #     return False
 
     def parse_tokens(self, spreadsheet: Spreadsheet) -> List[Union[Operand, Operator]]:
         """Parse tokens into operands and operators"""
