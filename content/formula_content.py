@@ -10,6 +10,9 @@ from formula.operator import Operator
 from formula.parser import Parser
 from formula.postfix_converter import PostfixConverter
 from spreadsheet.spreadsheet import Spreadsheet
+from formula.operand import CellOperand, FunctionOperand
+from formula.function import FunctionArgument, CellArgument, CellRangeArgument, FunctionArgumentWrapper
+from typing import Set
 import re
 
 class FormulaContent(CellContent):
@@ -25,6 +28,8 @@ class FormulaContent(CellContent):
         
         # Simple caching: store the computed value
         self._computed_value: Optional[float] = None
+
+        self._parsed_tokens = None
 
     def get_value(self, spreadsheet: Optional[Spreadsheet] = None, current_cell_name: str = None) -> float:
         # If we already have a computed value, return it
@@ -65,6 +70,7 @@ class FormulaContent(CellContent):
     def invalidate_value(self):
         """Mark the stored value as invalid, forcing recomputation on next access"""
         self._computed_value = None
+        self._parsed_tokens = None
 
     def has_computed_value(self) -> bool:
         """Check if this formula has a stored computed value"""
@@ -78,29 +84,60 @@ class FormulaContent(CellContent):
 
     def check_circular_dependencies(self, spreadsheet: Spreadsheet, current_cell_name: str = None):
         """
-        Extracts the current cell and all referenced cells from the formula,
-        and checks for circular dependencies.
+        IMPROVED: Uses typed tokens from parser instead of manual string parsing.
         """
-        # STEP 1 — Get the name of the current cell this formula is part of
         if current_cell_name is None:
             try:
                 current_cell = spreadsheet.get_cell_name(self)
             except ValueError:
-                # If we can't find the cell (it hasn't been added yet), we need the cell name
-                # This happens when setting a cell's content - we need to pass the cell name
                 raise ValueError("Cannot determine current cell name for circular dependency check")
         else:
             current_cell = current_cell_name
 
-        # Identify referenced cells (only tokens whose kind is 'RANGE' or 'CELL')
-        referenced_cells = set(self.get_referenced_cells())
+        # Parse tokens if not already cached
+        if self._parsed_tokens is None:
+            raw_expression = str(self.formula)[1:].replace(',', ';')
+            tokens = self.tokenizer.tokenize(raw_expression)
+            self.parser = Parser(tokens)
+            self._parsed_tokens = self.parser.parse_tokens(spreadsheet)
 
-        # STEP 4 — Use DependencyManager to detect cycles
+        # Get referenced cells using typed tokens (THE KEY IMPROVEMENT!)
+        referenced_cells = self._get_referenced_cells_from_tokens()
+
+        # Use existing dependency checking logic
         dependency_manager = spreadsheet.dep_manager
         dependency_manager.check_circular_dependencies(current_cell, referenced_cells)
-
-        # STEP 5 — If all is good, update the graph
         dependency_manager.update_dependencies(current_cell, referenced_cells)
+    
+    def _get_referenced_cells_from_tokens(self) -> Set[str]:
+        """Extract cell references from parsed typed tokens."""
+        referenced_cells = set()
+        
+        if self._parsed_tokens is None:
+            return referenced_cells
+        
+        for element in self._parsed_tokens:
+            if isinstance(element, CellOperand):
+                cell_name = f"{element.cell.coordinate.column}{element.cell.coordinate.row}"
+                referenced_cells.add(cell_name)
+            elif isinstance(element, FunctionOperand):
+                self._extract_from_function_args(element.arguments, referenced_cells)
+        
+        return referenced_cells
+    
+    def _extract_from_function_args(self, arguments, referenced_cells: Set[str]):
+        """Extract references from function arguments - handles ranges efficiently."""
+        for arg in arguments:
+            if isinstance(arg, CellArgument):
+                cell_name = f"{arg.cell.coordinate.column}{arg.cell.coordinate.row}"
+                referenced_cells.add(cell_name)
+            elif isinstance(arg, CellRangeArgument):
+                # KEY IMPROVEMENT: Direct access to range cells, no manual expansion!
+                for cell in arg.cells:
+                    cell_name = f"{cell.coordinate.column}{cell.coordinate.row}"
+                    referenced_cells.add(cell_name)
+            elif isinstance(arg, FunctionArgumentWrapper):
+                self._extract_from_function_args(arg.function_operand.arguments, referenced_cells)
 
     def get_referenced_cells(self) -> list:
         """

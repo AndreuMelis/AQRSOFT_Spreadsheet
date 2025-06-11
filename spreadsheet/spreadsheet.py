@@ -1,28 +1,27 @@
 # spreadsheet/spreadsheet.py
 
 import re
-from typing import Dict, Set
+from typing import Dict, Set, List, Optional
 from spreadsheet.cell import Cell
 from spreadsheet.coordinate import Coordinate
 from spreadsheet.dependency_manager import DependencyManager
 
 class Spreadsheet:
     def __init__(self):
-        # Diccionario: clave = Coordinate, valor = Cell
-        self.cells: Dict[Coordinate, Cell] = {}
+        self.cells: List[Cell] = []
         self.dep_manager = DependencyManager()
 
-    def get_cell(self, coords: Coordinate) -> Cell | None:
-        return self.cells.get(coords)
+    def get_cell(self, coords: Coordinate) -> Optional[Cell]:
+        for cell in self.cells:
+            if cell.coordinate == coords:
+                return cell
+        return None
     
     def get_cell_name(self, content) -> str:
-        """
-        Given a CellContent instance, find the Coordinate key whose cell has that content,
-        and return its string name (e.g. "C2"). Raises ValueError if not found.
-        """
-        for coord, cell in self.cells.items():
+        """Find the cell name that contains the given content."""
+        for cell in self.cells:
             if cell.content is content:
-                return f"{coord.column}{coord.row}"
+                return f"{cell.coordinate.column}{cell.coordinate.row}"
         raise ValueError("Cell containing this content was not found.")
     
     def is_valid_cell_reference(self, token: str) -> bool:
@@ -40,48 +39,45 @@ class Spreadsheet:
     #     return self._dep_manager
 
     def add_cell(self, coords: Coordinate, cell: Cell) -> None:
-        """Add a cell and invalidate dependent formulas"""
+        """Add a cell to the spreadsheet at the given coordinates."""
+        # FIXED: Set coordinate properly
+        if cell.coordinate != coords:
+            cell.coordinate = coords  # This will use the fixed setter
+        
+        # Remove existing cell at these coordinates
+        self._remove_cell_at_coords(coords)
+        
+        # Add the new cell to the list
+        self.cells.append(cell)
+        
+        # Invalidate dependent formulas
         cell_name = f"{coords.column}{coords.row}"
-        
-        # Add the new cell
-        self.cells[coords] = cell
-        
-        # Invalidate any formulas that reference this cell
         self._invalidate_dependent_formulas(cell_name)
 
+    def _remove_cell_at_coords(self, coords: Coordinate):
+        """Remove existing cell at coordinates."""
+        for i, cell in enumerate(self.cells):
+            if cell.coordinate == coords:
+                self.cells.pop(i)
+                return
+
     def _invalidate_dependent_formulas(self, changed_cell_name: str):
-        """
-        Find all formulas that reference the changed cell and invalidate their computed values.
-        This forces them to recalculate when next accessed.
-        """        
-        # Get all cells that depend on the changed cell
-        dependent_cells = []
-        for cell_name, dependencies in self.dep_manager.dependency_graph.items():
-            if changed_cell_name in dependencies:
-                dependent_cells.append(cell_name)
-        
-        # Invalidate all dependent formulas (transitively)
-        visited = set()
-        to_invalidate = dependent_cells[:]
-        
-        while to_invalidate:
-            cell_name = to_invalidate.pop(0)
-            if cell_name in visited:
-                continue
-                
-            visited.add(cell_name)
-            
-            # Find the actual cell and invalidate it if it's a formula
-            for coord, cell in self.cells.items():
-                if f"{coord.column}{coord.row}" == cell_name:
-                    if hasattr(cell.content, 'invalidate_value'):
+        """Invalidate formulas that depend on the changed cell."""
+        # Check each formula cell to see if it depends on the changed cell
+        for cell in self.cells:  # CHANGED: iterate through list instead of dict
+            if hasattr(cell.content, '_get_referenced_cells_from_tokens'):
+                # If it's a formula, check if it references the changed cell
+                try:
+                    referenced_cells = cell.content._get_referenced_cells_from_tokens()
+                    if changed_cell_name in referenced_cells:
                         cell.content.invalidate_value()
-                        
-                        # Add cells that depend on this cell to the invalidation queue
-                        for other_cell, other_deps in self.dep_manager.dependency_graph.items():
-                            if cell_name in other_deps and other_cell not in visited:
-                                to_invalidate.append(other_cell)
-                    break
+                except:
+                    # If there's any error, just invalidate to be safe
+                    cell.content.invalidate_value()
+            elif hasattr(cell.content, 'invalidate_value'):
+                # For older formula style, invalidate all formulas (safe approach)
+                if hasattr(cell.content, 'formula'):  # Check if it's a formula
+                    cell.content.invalidate_value()
 
     def set_cell_content(self, coords: Coordinate, content):
         """Convenience method to set cell content"""

@@ -25,8 +25,14 @@ class Cell:
         return self._coordinate
     
     @coordinate.setter
-    def coordinate(self, coordinate: tuple[str, int]) -> None:
-        self._coordinate = Coordinate(coordinate[0], coordinate[1])
+    def coordinate(self, coordinate):
+        """Set the coordinate of the cell."""
+        # FIXED: Handle both Coordinate objects and tuples
+        if isinstance(coordinate, Coordinate):
+            self._coordinate = coordinate
+        else:
+            # Handle tuple case (col, row)
+            self._coordinate = Coordinate(coordinate[0], coordinate[1])
 
     @property
     def content(self) -> CellContent | None:

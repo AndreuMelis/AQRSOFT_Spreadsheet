@@ -151,13 +151,13 @@ class ISpreadsheetControllerForChecker:
             self._saver.validate_file_name(file_name)
             self._saver.validate_directory(directory)
 
-            # Find the actual bounds of the spreadsheet
+            # FIXED: Use the new Spreadsheet structure (List[Cell] instead of Dict[Coordinate, Cell])
             if not self.spreadsheet.cells:
                 # Empty spreadsheet
                 data = []
             else:
-                # Find max row
-                max_row = max((coord.row for coord in self.spreadsheet.cells.keys()), default=0)
+                # Find max row from the list of cells
+                max_row = max((cell.coordinate.row for cell in self.spreadsheet.cells), default=0)
                 
                 data = []
                 for r in range(1, max_row + 1):
@@ -165,13 +165,14 @@ class ISpreadsheetControllerForChecker:
                     row_cells = {}
                     max_col_num = 0
                     
-                    for coord in self.spreadsheet.cells.keys():
-                        if coord.row == r:
+                    # FIXED: Iterate through the cell list instead of dictionary keys
+                    for cell in self.spreadsheet.cells:
+                        if cell.coordinate.row == r:
                             # Convert column letter to number (A=1, B=2, etc.)
                             col_num = 0
-                            for char in coord.column:
+                            for char in cell.coordinate.column:
                                 col_num = col_num * 26 + (ord(char) - ord('A') + 1)
-                            row_cells[col_num] = coord
+                            row_cells[col_num] = cell.coordinate
                             max_col_num = max(max_col_num, col_num)
                     
                     # Build row values only up to the rightmost column with data
