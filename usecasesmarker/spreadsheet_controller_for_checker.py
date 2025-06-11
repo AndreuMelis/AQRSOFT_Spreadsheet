@@ -149,7 +149,7 @@ class ISpreadsheetControllerForChecker:
 
         try:
             self._saver.validate_file_name(file_name)
-            self._saver.validate_directory(directory)
+            self._saver.validate_directory_path(directory)
 
             # FIXED: Use the new Spreadsheet structure (List[Cell] instead of Dict[Coordinate, Cell])
             if not self.spreadsheet.cells:

@@ -1,6 +1,6 @@
 # fileio/save_file.py
-
 import os
+import csv  # ADD this import - you're using csv.writer
 from spreadsheet.cell import Cell
 from spreadsheet.coordinate import Coordinate
 from spreadsheet.spreadsheet import Spreadsheet
@@ -30,7 +30,8 @@ class SaveFile:
                 "Invalid file name or extension. Must be .s2v or .txt"
             )
 
-    def validate_directory(self, directory_path: str):
+    # FIXED: Method name should match what's called in run_saver
+    def validate_directory_path(self, directory_path: str):
         if not os.path.exists(directory_path):
             raise InvalidFilePathException("Directory does not exist.")
 
@@ -48,40 +49,73 @@ class SaveFile:
     def display_save_confirmation(self):
         print("File saved successfully.")
 
-    def run_saver(self, spreadsheet: Spreadsheet):
-        file_extension = ".s2v"
-        file_name = self.prompt_for_file_name(file_extension)
-        directory_path = self.prompt_for_directory()
+    # ADD these helper methods that are missing
+    def _column_to_number(self, column: str) -> int:
+        """Convert column letter(s) to number (A=1, B=2, ..., Z=26, AA=27, etc.)"""
+        result = 0
+        for char in column:
+            result = result * 26 + (ord(char) - ord('A') + 1)
+        return result
 
-        # Determine the maximum row index
-        max_row = max((coord.row for coord in spreadsheet.cells.keys()), default=0)
+    def _number_to_column(self, num: int) -> str:
+        """Convert number to column letter(s) (1=A, 2=B, ..., 26=Z, 27=AA, etc.)"""
+        result = ""
+        while num > 0:
+            num -= 1
+            result = chr(num % 26 + ord('A')) + result
+            num //= 26
+        return result
 
-        if file_name and directory_path:
-            try:
-                self.validate_file_name(file_name)
-                self.validate_directory(directory_path)
-
-                # Columns from A to Z
-                letters = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
-
-                # Build a 2D list of strings (each row is a list of cell values)
-                spreadsheet_data = []
-                for row in range(1, max_row + 1):
-                    row_list = []
-                    for col in letters:
-                        coord = Coordinate(col, row)
-                        cell = spreadsheet.cells.get(coord)
-                        if cell and cell.content is not None:
-                            value = cell.get_textual_representation()
-                            cell_str = str(value).replace(";", ",")
-                        else:
-                            cell_str = ''
-                        row_list.append(cell_str)
-                    spreadsheet_data.append(row_list)
-
-                # Actually write to file, joining each row with semicolons
-                self.save_spreadsheet_data(file_name, directory_path, spreadsheet_data)
-                self.display_save_confirmation()
-
-            except (InvalidFileNameException, InvalidFilePathException, FileNotFoundException) as e:
-                print(f"Error: {e}")
+    def run_saver(self, spreadsheet):
+        """Save the spreadsheet to a file."""
+        # Get file details from user
+        file_name = input("Enter the file name: ")
+        directory_path = input("Enter the directory path: ")
+        
+        # Validate inputs
+        self.validate_file_name(file_name)
+        self.validate_directory_path(directory_path)  # FIXED: Now this method exists
+        
+        # FIXED: Don't add .s2v if it's already there
+        if not file_name.endswith('.s2v'):
+            full_path = os.path.join(directory_path, file_name + ".s2v")
+        else:
+            full_path = os.path.join(directory_path, file_name)
+        
+        # Get bounds using the new List structure
+        if not spreadsheet.cells:
+            # Empty spreadsheet
+            max_row = 0
+            max_col_num = 0
+        else:
+            max_row = max((cell.coordinate.row for cell in spreadsheet.cells), default=0)
+            max_col_num = max((self._column_to_number(cell.coordinate.column) for cell in spreadsheet.cells), default=0)
+        
+        # Create the data grid
+        data = []
+        for row in range(1, max_row + 1):
+            row_data = []
+            for col_num in range(1, max_col_num + 1):
+                col_letter = self._number_to_column(col_num)
+                
+                # Find cell using the new List structure
+                cell = spreadsheet.get_cell(Coordinate(col_letter, row))
+                
+                if cell:
+                    # Get the cell's textual representation for saving
+                    cell_content = cell.get_textual_representation()
+                    row_data.append(cell_content)  # FIXED: Don't add extra ";"
+                else:
+                    row_data.append("")  # FIXED: Empty string instead of ";"
+            data.append(row_data)
+        
+        # Write to file
+        try:
+            with open(full_path, 'w', newline='', encoding='utf-8') as file:
+                for row in data:
+                    # FIXED: Write semicolon-separated values properly
+                    line = ';'.join(row) + ';\n'  # Add semicolon after each value and at end
+                    file.write(line)
+            print(f"Spreadsheet saved to: {full_path}")
+        except Exception as e:
+            raise FileNotFoundException(f"Could not save file: {e}")

@@ -31,31 +31,37 @@ class SpreadsheetController:
         self.saver = SaveFile()
 
     def run_menu(self):
-        command = self.UI.display_menu()
-        self.run_command(command)
-
-    def run_command(self, command: str):
         while True:
-
-            if command.startswith("RF"):
-                self.read_commands_from_file(command.split(maxsplit=1)[1])
-            elif command == "C":
-                self.create_new_spreadsheet()
-            elif command.startswith("E"):
-                parts = command.split(maxsplit=2)
-                if len(parts) == 3:
-                    self.edit_cell(parts[1].upper(), parts[2])
-                else:
-                    print("Invalid command format. Use E <cell coordinate> <new cell content>")
-            elif command.startswith("L"):
-                self.load_spreadsheet(command.split(maxsplit=1)[1])
-            elif command.startswith("S"):
-                self.save_spreadsheet(self.spreadsheet)
-            elif command == "X":
-                print("Exiting program.")
+            command = self.UI.display_menu()
+            should_continue = self.run_command(command)
+            if not should_continue:  # Exit if user chose X
                 break
+
+    
+    def run_command(self, command: str):
+        # REMOVE the while True: loop - it's causing infinite repetition!
+        
+        if command.startswith("RF"):
+            self.read_commands_from_file(command.split(maxsplit=1)[1])
+        elif command == "C":
+            self.create_new_spreadsheet()
+        elif command.startswith("E"):
+            parts = command.split(maxsplit=2)
+            if len(parts) == 3:
+                self.edit_cell(parts[1].upper(), parts[2])
             else:
-                print("Invalid command. Please try again.")
+                print("Invalid command format. Use E <cell coordinate> <new cell content>")
+        elif command.startswith("L"):
+            self.load_spreadsheet(command.split(maxsplit=1)[1])
+        elif command.startswith("S"):
+            self.save_spreadsheet(self.spreadsheet)
+        elif command == "X":
+            print("Exiting program.")
+            return False  # Signal to exit
+        else:
+            print("Invalid command. Please try again.")
+        
+        return True
 
     def load_spreadsheet(self, file_path: str):
         try:
@@ -119,8 +125,8 @@ class SpreadsheetController:
             else:
                 content_obj = TextContent(cell_content)
 
-            # Backup the previous cell (if any)
-            prev_cell = self.spreadsheet.cells.get(coord)
+            # FIXED: Get previous cell using the new List structure
+            prev_cell = self.spreadsheet.get_cell(coord)  # Use spreadsheet's get_cell method
 
             # Create new cell
             new_cell = Cell((column, row_num), content_obj)
@@ -145,11 +151,14 @@ class SpreadsheetController:
                 SyntaxErrorException,
                 RecursionError
             ) as e:
-                # Roll back the cell change
+                # FIXED: Roll back using the new List structure
                 if prev_cell is not None:
-                    self.spreadsheet.cells[coord] = prev_cell
+                    # Remove the new cell and restore the previous one
+                    self.spreadsheet._remove_cell_at_coords(coord)
+                    self.spreadsheet.cells.append(prev_cell)
                 else:
-                    self.spreadsheet.cells.pop(coord, None)
+                    # Just remove the new cell
+                    self.spreadsheet._remove_cell_at_coords(coord)
 
                 # Print the error message
                 print(f"Error: {e}")
