@@ -1,6 +1,6 @@
 # AQRSOFT_Spreadsheet
 Spreadsheet project in python
-![App Screenshot](DCD_202500612_vFinal.png.png)
+![App Screenshot](DCD_20250612_vFinal.png.png)
 
 ## Project Structure
 ```
