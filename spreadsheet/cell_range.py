@@ -1,6 +1,9 @@
 from spreadsheet.cell import Cell
 from spreadsheet.coordinate import Coordinate
-from spreadsheet.spreadsheet import Spreadsheet
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from spreadsheet.spreadsheet import Spreadsheet
 import re
 from typing import Union, List, Any, Tuple
 
@@ -9,7 +12,7 @@ class CellRange:
         self.origin_cell = origin.upper()
         self.dest_cell   = destination.upper()
         
-    def get_values(self, spreadsheet: Spreadsheet):
+    def get_values(self, spreadsheet: 'Spreadsheet') -> List[Cell]:
         """
         Returns a list of cells in the range from origin_cell to dest_cell (inclusive).
         """

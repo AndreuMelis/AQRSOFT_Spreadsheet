@@ -2,6 +2,9 @@
 
 from typing import Set, Dict
 from exceptions import CircularDependencyException
+from formula.operand import CellOperand
+from formula.operand import FunctionOperand
+from formula.function import CellArgument, CellRangeArgument, FunctionArgumentWrapper
 
 class DependencyManager:
     def __init__(self):
@@ -50,3 +53,33 @@ class DependencyManager:
         After ensuring no cycle, record the new edges into the dependency_graph.
         """
         self.dependency_graph[current_cell] = referenced_cells.copy()
+
+    def get_referenced_cells_from_tokens(self, parsed_tokens) -> Set[str]:
+        """Extract cell references from parsed typed tokens."""
+        referenced_cells = set()
+        
+        if parsed_tokens is None:
+            return referenced_cells
+        
+        for element in parsed_tokens:
+            if isinstance(element, CellOperand):
+                cell_name = f"{element.cell.coordinate.column}{element.cell.coordinate.row}"
+                referenced_cells.add(cell_name)
+            elif isinstance(element, FunctionOperand):
+                self._extract_from_function_args(element.arguments, referenced_cells)
+        
+        return referenced_cells
+    
+    def _extract_from_function_args(self, arguments, referenced_cells: Set[str]):
+        """Extract references from function arguments - handles ranges efficiently."""
+        for arg in arguments:
+            if isinstance(arg, CellArgument):
+                cell_name = f"{arg.cell.coordinate.column}{arg.cell.coordinate.row}"
+                referenced_cells.add(cell_name)
+            elif isinstance(arg, CellRangeArgument):
+                # KEY IMPROVEMENT: Direct access to range cells, no manual expansion!
+                for cell in arg.cells:
+                    cell_name = f"{cell.coordinate.column}{cell.coordinate.row}"
+                    referenced_cells.add(cell_name)
+            elif isinstance(arg, FunctionArgumentWrapper):
+                self._extract_from_function_args(arg.function_operand.arguments, referenced_cells)

@@ -7,6 +7,7 @@ from typing import Union, List, Tuple
 from formula.operand import Operand, NumericOperand, CellOperand, FunctionOperand
 from formula.operator import Operator, ArithmeticOperator, ParenthesisOperator
 from formula.function import FunctionArgument, CellArgument, CellRangeArgument, NumericArgument, FunctionArgumentWrapper
+from formula.formula_element import FormulaElement
 
 class Parser:
     """
@@ -29,7 +30,7 @@ class Parser:
             self.pos += 1
         return token
 
-    def parse_tokens(self, spreadsheet: Spreadsheet) -> List[Union[Operand, Operator]]:
+    def parse_tokens(self, spreadsheet: Spreadsheet) -> List[FormulaElement]:
         """Parse tokens into operands and operators"""
         if not self.tokens:
             raise SyntaxErrorException("No tokens to parse")

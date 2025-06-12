@@ -9,6 +9,7 @@ from formula.operand import Operand
 from formula.operator import Operator
 from formula.parser import Parser
 from formula.postfix_converter import PostfixConverter
+from formula.formula_element import FormulaElement
 from spreadsheet.spreadsheet import Spreadsheet
 from formula.operand import CellOperand, FunctionOperand
 from formula.function import FunctionArgument, CellArgument, CellRangeArgument, FunctionArgumentWrapper
@@ -19,8 +20,7 @@ class FormulaContent(CellContent):
     def __init__(self, formula: str) -> None:
         super().__init__()
         self.formula: str = formula
-        self.operands: List['Operand'] = []
-        self.operators: List['Operator'] = []
+        self.elements: List[FormulaElement] = []
         self.tokenizer = Tokenizer()
         self.parser: Optional[Parser] = None
         self.postfix_converter: PostfixConverter = PostfixConverter()
@@ -51,16 +51,16 @@ class FormulaContent(CellContent):
         # Step 1: Tokenize into raw strings (e.g., ['A1', '+', '3'])
         tokens = self.tokenizer.tokenize(raw_expression)
 
-        # Step 2: CHECK CIRCULAR DEPENDENCIES FIRST, before creating objects
-        self.check_circular_dependencies(spreadsheet, current_cell_name)
-
-        # Step 3: Parse into typed tokens (Operator, Operand, Reference, etc.)
+        # Step 2: Parse into typed tokens (Operator, Operand, Reference, etc.)
         self.parser = Parser(tokens)
-        typed_tokens = self.parser.parse_tokens(spreadsheet)
+        self.elements = self.parser.parse_tokens(spreadsheet)
+
+        # Step 3: check for circular dependencies
+        self.check_circular_dependencies(spreadsheet, current_cell_name)
 
         # Step 4: Convert to postfix for evaluation
         self.postfix_converter = PostfixConverter()
-        postfix_tokens = self.postfix_converter.convert_to_postfix(typed_tokens)
+        postfix_tokens = self.postfix_converter.convert_to_postfix(self.elements)
 
         # Step 5: Evaluate postfix expression
         result = self.postfix_evaluator.evaluate_postfix_expression(postfix_tokens)
@@ -101,69 +101,12 @@ class FormulaContent(CellContent):
             self.parser = Parser(tokens)
             self._parsed_tokens = self.parser.parse_tokens(spreadsheet)
 
-        # Get referenced cells using typed tokens (THE KEY IMPROVEMENT!)
-        referenced_cells = self._get_referenced_cells_from_tokens()
-
         # Use existing dependency checking logic
         dependency_manager = spreadsheet.dep_manager
+        # Get referenced cells using typed tokens
+        referenced_cells = dependency_manager.get_referenced_cells_from_tokens(self._parsed_tokens)
         dependency_manager.check_circular_dependencies(current_cell, referenced_cells)
         dependency_manager.update_dependencies(current_cell, referenced_cells)
-    
-    def _get_referenced_cells_from_tokens(self) -> Set[str]:
-        """Extract cell references from parsed typed tokens."""
-        referenced_cells = set()
-        
-        if self._parsed_tokens is None:
-            return referenced_cells
-        
-        for element in self._parsed_tokens:
-            if isinstance(element, CellOperand):
-                cell_name = f"{element.cell.coordinate.column}{element.cell.coordinate.row}"
-                referenced_cells.add(cell_name)
-            elif isinstance(element, FunctionOperand):
-                self._extract_from_function_args(element.arguments, referenced_cells)
-        
-        return referenced_cells
-    
-    def _extract_from_function_args(self, arguments, referenced_cells: Set[str]):
-        """Extract references from function arguments - handles ranges efficiently."""
-        for arg in arguments:
-            if isinstance(arg, CellArgument):
-                cell_name = f"{arg.cell.coordinate.column}{arg.cell.coordinate.row}"
-                referenced_cells.add(cell_name)
-            elif isinstance(arg, CellRangeArgument):
-                # KEY IMPROVEMENT: Direct access to range cells, no manual expansion!
-                for cell in arg.cells:
-                    cell_name = f"{cell.coordinate.column}{cell.coordinate.row}"
-                    referenced_cells.add(cell_name)
-            elif isinstance(arg, FunctionArgumentWrapper):
-                self._extract_from_function_args(arg.function_operand.arguments, referenced_cells)
-
-    def get_referenced_cells(self) -> list:
-        """
-        Returns a list of all cell names referenced in the formula,
-        expanding ranges like A6:A10 to ['A6', 'A7', 'A8', 'A9', 'A10'].
-        """
-        if not self.validate_formula_format():
-            return []
-
-        expr = self.formula[1:].replace(',', ';')
-        refs = set()
-
-        # Expand ranges like A6:A10
-        for match in re.finditer(r'([A-Z]+)(\d+):([A-Z]+)(\d+)', expr):
-            col1, row1, col2, row2 = match.groups()
-            if col1 == col2:
-                for row in range(int(row1), int(row2) + 1):
-                    refs.add(f"{col1}{row}")
-            # (If you want to support multi-column ranges, add logic here)
-
-        # Find all single cell references not part of a range
-        for match in re.finditer(r'([A-Z]+)(\d+)', expr):
-            cell = match.group(0)
-            refs.add(cell)
-
-        return list(refs)
 
     def get_text(self) -> str:
         """
