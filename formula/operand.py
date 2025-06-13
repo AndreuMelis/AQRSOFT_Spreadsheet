@@ -1,20 +1,15 @@
-# formula/operand.py
-
 from abc import ABC, abstractmethod
 import re
 from typing import Union, Any, List, Dict, Type, TYPE_CHECKING
 
-# Importamos solo para type‐checking, no en ejecución
 if TYPE_CHECKING:
     from .formula_element import FormulaElementVisitor
     from .function import Function, FunctionArgument
     from spreadsheet.spreadsheet import Spreadsheet
 
-# Importamos el resto de dependencias externas
 from content.numerical_content import NumericContent
 from spreadsheet.cell import Cell
 from spreadsheet.coordinate import Coordinate
-
 from content.number import Number
 
 class Operand(ABC):
@@ -72,13 +67,11 @@ class CellOperand(Operand):
 
         cell = spreadsheet.get_cell(Coordinate(col, int(row)))
         if cell is None:
-           # coord is a Coordinate, but Cell wants a (col, row) tuple:
             coord_tuple = (col, row)
             placeholder = Cell(coord_tuple, NumericContent(0.0))
             spreadsheet.add_cell(Coordinate(col, int(row)), placeholder)
             cell = placeholder
         else:
-            # ensure the cell knows its sheet too
             setattr(cell, "_sheet", spreadsheet)
 
         return cls(cell)

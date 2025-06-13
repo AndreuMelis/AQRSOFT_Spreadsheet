@@ -13,13 +13,12 @@ from fileio.save_file import SaveFile
 
 from spreadsheet.spreadsheet import Spreadsheet
 from spreadsheet.cell import Cell
-from spreadsheet.coordinate import Coordinate  # ADD THIS IMPORT
+from spreadsheet.coordinate import Coordinate  
 
 import exceptions as ex
 from usecasesmarker.reading_spreadsheet_exception import ReadingSpreadsheetException
 from usecasesmarker.saving_spreadsheet_exception import SavingSpreadsheetException
 
-# Import the entities exceptions that the test framework expects
 from entities.circular_dependency_exception import CircularDependencyException
 from entities.bad_coordinate_exception import BadCoordinateException
 from entities.no_number_exception import NoNumberException
@@ -51,11 +50,9 @@ class ISpreadsheetControllerForChecker:
         col, row = m.group(1), int(m.group(2))
 
         if content.startswith('='):
-            # Keep the leading '=' so FormulaContent.validate_formula_format() passes
             cell_content = FormulaContent(content)
             
             # For formulas, check circular dependencies BEFORE adding the cell
-            # This must happen before the cell is added to prevent circular references
             raw_expression = content[1:].replace(',', ';')
             tokens = cell_content.tokenizer.tokenize(raw_expression)
             try:
@@ -71,7 +68,6 @@ class ISpreadsheetControllerForChecker:
         else:
             cell_content = TextContent(content)
 
-        # FIX: Create Coordinate object instead of passing tuple
         coordinate = Coordinate(col, row)
         self.spreadsheet.add_cell(coordinate, Cell((col, row), cell_content))
 
@@ -84,8 +80,6 @@ class ISpreadsheetControllerForChecker:
         if not m:
             raise BadCoordinateException(f"Invalid cell: {coord}")
         col, row = m.group(1), int(m.group(2))
-
-        # FIX: Create Coordinate object instead of passing tuple
         coordinate = Coordinate(col, row)
         cell = self.spreadsheet.get_cell(coordinate)
         if not cell:
@@ -107,7 +101,6 @@ class ISpreadsheetControllerForChecker:
             raise BadCoordinateException(f"Invalid cell: {coord}")
         col, row = m.group(1), int(m.group(2))
 
-        # FIX: Create Coordinate object instead of passing tuple
         coordinate = Coordinate(col, row)
         cell = self.spreadsheet.get_cell(coordinate)
         if not cell:
@@ -127,7 +120,6 @@ class ISpreadsheetControllerForChecker:
             raise BadCoordinateException(f"Invalid cell: {coord}")
         col, row = m.group(1), int(m.group(2))
 
-        # FIX: Create Coordinate object instead of passing tuple
         coordinate = Coordinate(col, row)
         cell = self.spreadsheet.get_cell(coordinate)
         if not cell or not isinstance(cell.content, FormulaContent):
@@ -141,7 +133,6 @@ class ISpreadsheetControllerForChecker:
         Saves the current spreadsheet to a .s2v file in the working directory.
         Raises SavingSpreadsheetException on error.
         """
-        # Ensure .s2v extension
         file_name = s_name_in_user_dir
         if not file_name.lower().endswith(".s2v"):
             file_name += ".s2v"
@@ -151,7 +142,6 @@ class ISpreadsheetControllerForChecker:
             self._saver.validate_file_name(file_name)
             self._saver.validate_directory_path(directory)
 
-            # FIXED: Use the new Spreadsheet structure (List[Cell] instead of Dict[Coordinate, Cell])
             if not self.spreadsheet.cells:
                 # Empty spreadsheet
                 data = []
@@ -164,8 +154,7 @@ class ISpreadsheetControllerForChecker:
                     # For each row, find the rightmost column that has data
                     row_cells = {}
                     max_col_num = 0
-                    
-                    # FIXED: Iterate through the cell list instead of dictionary keys
+
                     for cell in self.spreadsheet.cells:
                         if cell.coordinate.row == r:
                             # Convert column letter to number (A=1, B=2, etc.)
@@ -205,7 +194,6 @@ class ISpreadsheetControllerForChecker:
                     else:
                         data.append([])
 
-            # Actually write to file, joining each row with semicolons
             self._saver.save_spreadsheet_data(file_name, directory, data)
 
         except Exception as e:
@@ -218,8 +206,6 @@ class ISpreadsheetControllerForChecker:
         Loads a spreadsheet from a .s2v file (semicolon-delimited) on disk.
         Raises ReadingSpreadsheetException on error.
         """
-        import re  # Move import to the top of the method
-        
         # First try the provided path as-is (relative to current directory)
         if not os.path.isabs(s_name_in_user_dir):
             path = os.path.join(os.getcwd(), s_name_in_user_dir)
@@ -252,7 +238,6 @@ class ISpreadsheetControllerForChecker:
                     if not text:
                         continue
                     col_letter = num_to_col(col_idx + 1)
-                    # FIX: Create Coordinate object instead of passing tuple
                     coordinate = Coordinate(col_letter, row_idx)
 
                     if text.startswith('='):

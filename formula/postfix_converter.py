@@ -1,5 +1,3 @@
-# formula/postfix_converter.py
-
 from exceptions import InvalidPostfixException
 from typing import List, Union
 from formula.operand import Operand
@@ -53,7 +51,7 @@ class PostfixConverter:
                     output_queue.append(token)
                     
                 elif isinstance(token, Operator):
-                    operator_symbol = token.get_symbol()  # ← use get_symbol(), not operator_type()
+                    operator_symbol = token.get_symbol() 
                     
                     if operator_symbol == '(':
                         # Left parenthesis goes on stack

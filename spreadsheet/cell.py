@@ -1,12 +1,8 @@
-# --------------------------------------------------------------------------------------------------
-# Archivo: spreadsheet/cell.py
-# --------------------------------------------------------------------------------------------------
 from content.cell_content import CellContent
 from .coordinate import Coordinate
 import re
 from typing import Optional, Any, TYPE_CHECKING
 
-# Si se desea usar "Spreadsheet" como type hint sin que se importe en tiempo de ejecución:
 if TYPE_CHECKING:
     from .spreadsheet import Spreadsheet
     from content.formula_content import FormulaContent
@@ -27,7 +23,6 @@ class Cell:
     @coordinate.setter
     def coordinate(self, coordinate):
         """Set the coordinate of the cell."""
-        # FIXED: Handle both Coordinate objects and tuples
         if isinstance(coordinate, Coordinate):
             self._coordinate = coordinate
         else:
@@ -38,7 +33,7 @@ class Cell:
     def content(self) -> CellContent | None:
         return self._content
     
-    @content.setter # not used, subsituted by get_value
+    @content.setter 
     def content(self, content: CellContent) -> None:
         self._content = content
 
@@ -53,7 +48,6 @@ class Cell:
         Devuelve el valor calculado por el content.
         Si el contenido es fórmula, puede necesitar 'spreadsheet' para resolver referencias.
         """
-        # Import here to avoid circular imports
         from content.formula_content import FormulaContent
         
         if isinstance(self._content, FormulaContent) and spreadsheet is not None:

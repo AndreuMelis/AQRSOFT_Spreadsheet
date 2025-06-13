@@ -1,5 +1,3 @@
-# formula/postfix_evaluator.py
-
 from .formula_element import FormulaElementVisitor, FormulaElement
 from .operand import Operand, CellOperand, FunctionOperand, NumericOperand
 from .operator import Operator

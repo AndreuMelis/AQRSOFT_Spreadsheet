@@ -4,13 +4,13 @@ from spreadsheet.cell import Cell
 from content.number import Number
 from spreadsheet.cell_range import CellRange
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from spreadsheet.spreadsheet import Spreadsheet
     import re
 from formula.operand import FunctionOperand
 
-# Abstract base for all spreadsheet functions
-# TODO -> implement the function methods
+
 class Function(ABC):
     @abstractmethod
     def evaluate(self, arguments: List[Any]) -> Any:

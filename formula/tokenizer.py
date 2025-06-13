@@ -1,5 +1,5 @@
 import re
-from exceptions import TokenizingErrorException  # Adjust the import path if needed
+from exceptions import TokenizingErrorException 
 
 class Tokenizer:
     def __init__(self):

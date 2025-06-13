@@ -1,6 +1,5 @@
-# fileio/save_file.py
 import os
-import csv  # ADD this import - you're using csv.writer
+import csv  
 from spreadsheet.cell import Cell
 from spreadsheet.coordinate import Coordinate
 from spreadsheet.spreadsheet import Spreadsheet
@@ -30,7 +29,6 @@ class SaveFile:
                 "Invalid file name or extension. Must be .s2v or .txt"
             )
 
-    # FIXED: Method name should match what's called in run_saver
     def validate_directory_path(self, directory_path: str):
         if not os.path.exists(directory_path):
             raise InvalidFilePathException("Directory does not exist.")
@@ -49,7 +47,6 @@ class SaveFile:
     def display_save_confirmation(self):
         print("File saved successfully.")
 
-    # ADD these helper methods that are missing
     def _column_to_number(self, column: str) -> int:
         """Convert column letter(s) to number (A=1, B=2, ..., Z=26, AA=27, etc.)"""
         result = 0
@@ -74,9 +71,8 @@ class SaveFile:
         
         # Validate inputs
         self.validate_file_name(file_name)
-        self.validate_directory_path(directory_path)  # FIXED: Now this method exists
+        self.validate_directory_path(directory_path) 
         
-        # FIXED: Don't add .s2v if it's already there
         if not file_name.endswith('.s2v'):
             full_path = os.path.join(directory_path, file_name + ".s2v")
         else:
@@ -104,16 +100,13 @@ class SaveFile:
                 if cell:
                     # Get the cell's textual representation for saving
                     cell_content = cell.get_textual_representation()
-                    row_data.append(cell_content)  # FIXED: Don't add extra ";"
+                    row_data.append(cell_content)  
                 else:
-                    row_data.append("")  # FIXED: Empty string instead of ";"
+                    row_data.append("")  
             data.append(row_data)
-        
-        # Write to file
         try:
             with open(full_path, 'w', newline='', encoding='utf-8') as file:
                 for row in data:
-                    # FIXED: Write semicolon-separated values properly
                     line = ';'.join(row) + ';\n'  # Add semicolon after each value and at end
                     file.write(line)
             print(f"Spreadsheet saved to: {full_path}")

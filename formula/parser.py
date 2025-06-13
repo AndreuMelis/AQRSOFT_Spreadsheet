@@ -3,7 +3,6 @@ from exceptions import SyntaxErrorException
 from spreadsheet.spreadsheet import Spreadsheet
 from typing import Union, List, Tuple
 
-# Import concrete classes
 from formula.operand import Operand, NumericOperand, CellOperand, FunctionOperand
 from formula.operator import Operator, ArithmeticOperator, ParenthesisOperator
 from formula.function import FunctionArgument, CellArgument, CellRangeArgument, NumericArgument, FunctionArgumentWrapper

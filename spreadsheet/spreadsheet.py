@@ -1,5 +1,3 @@
-# spreadsheet/spreadsheet.py
-
 import re
 from typing import Dict, Set, List, Optional
 from spreadsheet.cell import Cell
@@ -30,19 +28,10 @@ class Spreadsheet:
         """
         return bool(re.fullmatch(r"[A-Z]+\d+", token))
 
-    # def get_dependency_manager(self) -> DependencyManager:
-    #     """
-    #     Return (or create) the DependencyManager instance for this spreadsheet.
-    #     """
-    #     if not hasattr(self, "_dep_manager"):
-    #         self._dep_manager = DependencyManager()
-    #     return self._dep_manager
-
     def add_cell(self, coords: Coordinate, cell: Cell) -> None:
         """Add a cell to the spreadsheet at the given coordinates."""
-        # FIXED: Set coordinate properly
         if cell.coordinate != coords:
-            cell.coordinate = coords  # This will use the fixed setter
+            cell.coordinate = coords  
         
         # Remove existing cell at these coordinates
         self._remove_cell_at_coords(coords)
@@ -72,7 +61,7 @@ class Spreadsheet:
             if changed_cell_name in dependencies:
                 dependent_cells.append(cell_name)
         
-        # Invalidate all dependent formulas (transitively)
+        # Invalidate all dependent formulas 
         visited = set()
         to_invalidate = dependent_cells[:]
         
@@ -87,11 +76,9 @@ class Spreadsheet:
             for cell in self.cells:
                 current_cell_name = f"{cell.coordinate.column}{cell.coordinate.row}"
                 if current_cell_name == cell_name:
-                    # SAFER: Only set _computed_value to None instead of calling invalidate_value()
                     if hasattr(cell.content, '_computed_value'):
                         cell.content._computed_value = None
-                        
-                    # Add cells that depend on this cell to the invalidation queue
+
                     for other_cell, other_deps in self.dep_manager.dependency_graph.items():
                         if cell_name in other_deps and other_cell not in visited:
                             to_invalidate.append(other_cell)
@@ -110,37 +97,28 @@ class Spreadsheet:
             print("(empty spreadsheet)")
             return
 
-        # Get coordinates from the cell list instead of dictionary keys
-        sorted_coords = sorted([cell.coordinate for cell in self.cells], 
-                            key=lambda c: (c.row, c.column))
+        # Get all cell coordinates
+        coords = [cell.coordinate for cell in self.cells]
         
-        if not sorted_coords:
+        if not coords:
             print("(empty spreadsheet)")
             return
 
         # Find bounds
-        min_row = min(coord.row for coord in sorted_coords)
-        max_row = max(coord.row for coord in sorted_coords)
-        min_col = min(coord.column for coord in sorted_coords)
-        max_col = max(coord.column for coord in sorted_coords)
+        min_row = min(coord.row for coord in coords)
+        max_row = max(coord.row for coord in coords)
         
-        # Generate column range
-        def next_column(col):
-            if col == 'Z':
-                return 'AA'
-            elif col.endswith('Z'):
-                prefix = col[:-1]
-                return next_column(prefix) + 'A'
-            else:
-                return col[:-1] + chr(ord(col[-1]) + 1)
+        # Get all unique columns and sort them in SPREADSHEET ORDER (A, B, ..., Z, AA, AB, ...)
+        columns = list(set(coord.column for coord in coords))
         
-        columns = []
-        current_col = min_col
-        while True:
-            columns.append(current_col)
-            if current_col == max_col:
-                break
-            current_col = next_column(current_col)
+        def column_sort_key(col):
+            """Convert column to sortable number: A=1, B=2, ..., Z=26, AA=27, AB=28, etc."""
+            result = 0
+            for char in col:
+                result = result * 26 + (ord(char) - ord('A') + 1)
+            return result
+        
+        columns.sort(key=column_sort_key)  # Now A, B, C, ..., Z, AA, AB, etc.
         
         # Calculate column widths
         col_widths = {}
@@ -150,25 +128,21 @@ class Spreadsheet:
                 coord = Coordinate(col, row)
                 cell = self.get_cell(coord)
                 if cell:
-                    # Get calculated value for display
                     try:
-                        if hasattr(cell.content, 'formula'):  # It's a formula
-                            if hasattr(cell.content, 'get_value'):
+                        if hasattr(cell.content, 'get_value'):
+                            if hasattr(cell.content, 'formula'):  # Formula content needs spreadsheet
                                 content_str = str(cell.content.get_value(self))
                             else:
-                                content_str = str(cell.get_textual_representation())
-                        else:
-                            # For other content, try without spreadsheet parameter
-                            if hasattr(cell.content, 'get_value'):
                                 content_str = str(cell.content.get_value())
-                            else:
-                                content_str = str(cell.get_textual_representation())
-                    except Exception:
-                        content_str = str(cell.get_textual_representation())
+                        else:
+                            content_str = str(cell.content)
+                    except Exception as e:
+                        content_str = "ERROR"
                     
                     max_width = max(max_width, len(content_str))
-            col_widths[col] = max_width
+            col_widths[col] = max(max_width, 3)  # Minimum width of 3
         
+        # Rest of the method stays the same...
         # Print header
         print("   ", end="")
         for col in columns:
@@ -190,20 +164,16 @@ class Spreadsheet:
                 coord = Coordinate(col, row)
                 cell = self.get_cell(coord)
                 if cell:
-                    # Same logic as above for displaying values
                     try:
-                        if hasattr(cell.content, 'formula'):  # It's a formula
-                            if hasattr(cell.content, 'get_value'):
+                        if hasattr(cell.content, 'get_value'):
+                            if hasattr(cell.content, 'formula'):  # Formula content needs spreadsheet
                                 content = str(cell.content.get_value(self))
                             else:
-                                content = str(cell.get_textual_representation())
-                        else:
-                            if hasattr(cell.content, 'get_value'):
                                 content = str(cell.content.get_value())
-                            else:
-                                content = str(cell.get_textual_representation())
-                    except Exception:
-                        content = str(cell.get_textual_representation())
+                        else:
+                            content = str(cell.content)
+                    except Exception as e:
+                        content = "ERROR"
                 else:
                     content = ""
                 print(f" {content:^{col_widths[col]}} │", end="")

@@ -1,5 +1,3 @@
-# spreadsheet/dependency_manager.py
-
 from typing import Set, Dict
 from exceptions import CircularDependencyException
 from formula.operand import CellOperand
@@ -77,7 +75,6 @@ class DependencyManager:
                 cell_name = f"{arg.cell.coordinate.column}{arg.cell.coordinate.row}"
                 referenced_cells.add(cell_name)
             elif isinstance(arg, CellRangeArgument):
-                # KEY IMPROVEMENT: Direct access to range cells, no manual expansion!
                 for cell in arg.cells:
                     cell_name = f"{cell.coordinate.column}{cell.coordinate.row}"
                     referenced_cells.add(cell_name)

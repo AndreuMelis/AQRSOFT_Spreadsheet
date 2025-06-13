@@ -38,9 +38,7 @@ class SpreadsheetController:
                 break
 
     
-    def run_command(self, command: str):
-        # REMOVE the while True: loop - it's causing infinite repetition!
-        
+    def run_command(self, command: str): 
         if command.startswith("RF"):
             self.read_commands_from_file(command.split(maxsplit=1)[1])
         elif command == "C":
@@ -125,8 +123,8 @@ class SpreadsheetController:
             else:
                 content_obj = TextContent(cell_content)
 
-            # FIXED: Get previous cell using the new List structure
-            prev_cell = self.spreadsheet.get_cell(coord)  # Use spreadsheet's get_cell method
+            # Get previous cell using the new List structure
+            prev_cell = self.spreadsheet.get_cell(coord)  
 
             # Create new cell
             new_cell = Cell((column, row_num), content_obj)
@@ -137,11 +135,8 @@ class SpreadsheetController:
             # Try to evaluate the cell content to check for errors
             try:
                 if isinstance(content_obj, FormulaContent):
-                    # Test evaluation by getting the cell value
-                    # This will trigger any evaluation errors
                     new_cell.content.get_value(self.spreadsheet)
                 
-                # If we get here, no errors occurred - print the updated spreadsheet
                 self.spreadsheet.print_spreadsheet()
                 
             except (
@@ -151,7 +146,7 @@ class SpreadsheetController:
                 SyntaxErrorException,
                 RecursionError
             ) as e:
-                # FIXED: Roll back using the new List structure
+                # Roll back using the new List structure
                 if prev_cell is not None:
                     # Remove the new cell and restore the previous one
                     self.spreadsheet._remove_cell_at_coords(coord)
@@ -160,10 +155,7 @@ class SpreadsheetController:
                     # Just remove the new cell
                     self.spreadsheet._remove_cell_at_coords(coord)
 
-                # Print the error message
                 print(f"Error: {e}")
-                
-                # Print the spreadsheet in its previous state
                 self.spreadsheet.print_spreadsheet()
 
         except InvalidCellReferenceException as e:

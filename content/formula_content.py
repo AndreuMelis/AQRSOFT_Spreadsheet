@@ -45,24 +45,23 @@ class FormulaContent(CellContent):
         if not self.validate_formula_format():
             raise ValueError("Invalid formula format: must start with '='")
 
-        # Don't modify the original formula - create a copy for processing
         raw_expression = str(self.formula)[1:].replace(',', ';')
 
-        # Step 1: Tokenize into raw strings (e.g., ['A1', '+', '3'])
+        # Tokenize into raw strings 
         tokens = self.tokenizer.tokenize(raw_expression)
 
-        # Step 2: Parse into typed tokens (Operator, Operand, Reference, etc.)
+        # Parse into typed tokens 
         self.parser = Parser(tokens)
         self.elements = self.parser.parse_tokens(spreadsheet)
 
-        # Step 3: check for circular dependencies
+        # Check for circular dependencies
         self.check_circular_dependencies(spreadsheet, current_cell_name)
 
-        # Step 4: Convert to postfix for evaluation
+        # Convert to postfix for evaluation
         self.postfix_converter = PostfixConverter()
         postfix_tokens = self.postfix_converter.convert_to_postfix(self.elements)
 
-        # Step 5: Evaluate postfix expression
+        # Evaluate postfix expression
         result = self.postfix_evaluator.evaluate_postfix_expression(postfix_tokens)
 
         return result
@@ -77,15 +76,11 @@ class FormulaContent(CellContent):
         return self._computed_value is not None
 
     def validate_formula_format(self) -> bool:
-        """
-        Validates that the formula begins with an equals sign.
-        """
+        """Validates that the formula begins with an equals sign."""
         return self.formula.startswith("=")
 
     def check_circular_dependencies(self, spreadsheet: Spreadsheet, current_cell_name: str = None):
-        """
-        IMPROVED: Uses typed tokens from parser instead of manual string parsing.
-        """
+        """Uses typed tokens from parser instead of manual string parsing."""
         if current_cell_name is None:
             try:
                 current_cell = spreadsheet.get_cell_name(self)
@@ -109,9 +104,7 @@ class FormulaContent(CellContent):
         dependency_manager.update_dependencies(current_cell, referenced_cells)
 
     def get_text(self) -> str:
-        """
-        Returns the formula as a string exactly as stored.
-        """
+        """Returns the formula as a string exactly as stored."""
         return str(self.formula)
     
     def __repr__(self):
